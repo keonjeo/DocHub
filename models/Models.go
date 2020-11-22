@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/TruthHun/DocHub/helper"
+	"dochub/helper"
 
 	"reflect"
 

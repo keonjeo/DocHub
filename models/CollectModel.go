@@ -3,7 +3,7 @@ package models
 import (
 	"errors"
 
-	"github.com/TruthHun/DocHub/helper"
+	"dochub/helper"
 	"github.com/astaxie/beego/orm"
 )
 
@@ -60,7 +60,7 @@ func GetTableCollect() string {
 //@param                cid             CollectFolder表的id，即收藏夹id
 //@param                uid             用户id
 //@param                err             返回错误
-func (this *Collect) Cancel(did, cid interface{}, uid int) (err error) {
+func (model *Collect) Cancel(did, cid interface{}, uid int) (err error) {
 	var affected int64
 	if affected, err = orm.NewOrm().QueryTable(GetTableCollect()).Filter("Did", did).Filter("Cid", cid).Delete(); err == nil && affected > 0 {
 		Regulate(GetTableCollectFolder(), "Cnt", -1, "Id=?", cid) //收藏夹收藏的文档数量-1
@@ -73,7 +73,7 @@ func (this *Collect) Cancel(did, cid interface{}, uid int) (err error) {
 //@param                id              收藏夹id
 //@param                uid             用户id
 //@return               err             错误，如果错误为nil，则表示删除成功，否则删除失败
-func (this *Collect) DelFolder(id, uid int) (err error) {
+func (model *Collect) DelFolder(id, uid int) (err error) {
 	//查询判断收藏夹是否是当前用户的收藏夹
 	var (
 		cf = CollectFolder{Id: id}
@@ -124,7 +124,7 @@ func (this *Collect) DelFolder(id, uid int) (err error) {
 //删除指定的文档收藏，比如某文档是侵权或者非法，则凡是收藏了该文档的用户，该文档收藏都将被删除
 //@param            dids            文档id
 //@return           err             错误，nil表示删除成功
-func (this *Collect) DelByDocId(dids ...interface{}) (err error) {
+func (model *Collect) DelByDocId(dids ...interface{}) (err error) {
 	var (
 		clt []Collect //文档收藏记录
 		ids []interface{}

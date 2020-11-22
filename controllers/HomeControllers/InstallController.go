@@ -3,8 +3,8 @@ package HomeControllers
 import (
 	"strings"
 
-	"github.com/TruthHun/DocHub/helper"
-	"github.com/TruthHun/DocHub/models"
+	"dochub/helper"
+	"dochub/models"
 	"github.com/astaxie/beego"
 )
 
@@ -23,20 +23,20 @@ type installForm struct {
 }
 
 //安装程序
-func (this *InstallController) Install() {
+func (controller *InstallController) Install() {
 	if helper.IsInstalled { //如果程序已安装，在访问该路由是，跳转到首页
-		this.Redirect("/", 302)
+		controller.Redirect("/", 302)
 		return
 	}
-	if this.Ctx.Request.Method == "GET" {
-		this.TplName = "Install/install.html"
+	if controller.Ctx.Request.Method == "GET" {
+		controller.TplName = "Install/install.html"
 		return
 	}
 
 	var form installForm
 	var respData = map[string]interface{}{"status": 0}
 
-	this.ParseForm(&form)
+	controller.ParseForm(&form)
 
 	if form.Charset == "" {
 		respData["msg"] = "请选择您创建的数据库字符编码！！！请选择您创建的数据库字符编码！！！请选择您创建的数据库字符编码！！！"
@@ -68,6 +68,6 @@ func (this *InstallController) Install() {
 		}
 	}
 
-	this.Data["json"] = respData
-	this.ServeJSON()
+	controller.Data["json"] = respData
+	controller.ServeJSON()
 }

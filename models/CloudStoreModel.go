@@ -7,10 +7,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/PuerkitoBio/goquery"
+	"dochub/helper"
 
-	CloudStore2 "github.com/TruthHun/CloudStore"
-	"github.com/TruthHun/DocHub/helper"
+	"github.com/PuerkitoBio/goquery"
+	CloudStore2 "github.com/keonjeo/CloudStore"
 )
 
 type CloudStore struct {

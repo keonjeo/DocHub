@@ -4,7 +4,7 @@ type AdController struct {
 	BaseController
 }
 
-func (this *AdController) Get() {
-	this.Data["IsAd"] = true
-	this.TplName = "index.html"
+func (controller *AdController) Get() {
+	controller.Data["IsAd"] = true
+	controller.TplName = "index.html"
 }

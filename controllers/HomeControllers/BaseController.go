@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/TruthHun/DocHub/helper"
-	"github.com/TruthHun/DocHub/models"
+	"dochub/helper"
+	"dochub/models"
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
 )
@@ -28,40 +28,40 @@ type BaseController struct {
 }
 
 //初始化函数
-func (this *BaseController) Prepare() {
-	ctrl, _ := this.GetControllerAndAction()
+func (controller *BaseController) Prepare() {
+	ctrl, _ := controller.GetControllerAndAction()
 	ctrl = strings.TrimSuffix(ctrl, "Controller")
 
 	//设置默认模板
-	this.TplTheme = "default"
-	this.TplPrefix = "Home/" + this.TplTheme + "/" + ctrl + "/"
-	this.Layout = "Home/" + this.TplTheme + "/layout.html"
+	controller.TplTheme = "default"
+	controller.TplPrefix = "Home/" + controller.TplTheme + "/" + ctrl + "/"
+	controller.Layout = "Home/" + controller.TplTheme + "/layout.html"
 
 	//防止跨站攻击
 	//检测用户是否已经在cookie存在登录
-	this.checkCookieLogin()
+	controller.checkCookieLogin()
 
 	//初始化
-	this.Data["LoginUid"] = this.IsLogin
+	controller.Data["LoginUid"] = controller.IsLogin
 	//当前模板静态文件
-	this.Data["TplStatic"] = "/static/Home/" + this.TplTheme
+	controller.Data["TplStatic"] = "/static/Home/" + controller.TplTheme
 
 	version := helper.VERSION
 	if helper.Debug { //debug模式下，每次更新js
 		version = fmt.Sprintf("%v.%v", version, time.Now().Unix())
 	}
-	this.Sys, _ = models.NewSys().Get()
-	this.Data["Version"] = version
-	this.Data["Sys"] = this.Sys
-	this.Data["Chanels"] = models.NewCategory().GetByPid(0, true)
-	this.Data["Pages"], _, _ = models.NewPages().List(beego.AppConfig.DefaultInt("pageslimit", 6), 1)
-	this.Data["AdminId"] = helper.Interface2Int(this.GetSession("AdminId"))
-	this.Data["CopyrightDate"] = time.Now().Format("2006")
+	controller.Sys, _ = models.NewSys().Get()
+	controller.Data["Version"] = version
+	controller.Data["Sys"] = controller.Sys
+	controller.Data["Chanels"] = models.NewCategory().GetByPid(0, true)
+	controller.Data["Pages"], _, _ = models.NewPages().List(beego.AppConfig.DefaultInt("pageslimit", 6), 1)
+	controller.Data["AdminId"] = helper.Interface2Int(controller.GetSession("AdminId"))
+	controller.Data["CopyrightDate"] = time.Now().Format("2006")
 
-	this.Data["PreviewDomain"] = ""
+	controller.Data["PreviewDomain"] = ""
 
 	if cs, err := models.NewCloudStore(false); err == nil {
-		this.Data["PreviewDomain"] = cs.GetPublicDomain()
+		controller.Data["PreviewDomain"] = cs.GetPublicDomain()
 	} else {
 		helper.Logger.Error(err.Error())
 	}
@@ -69,8 +69,8 @@ func (this *BaseController) Prepare() {
 }
 
 //是否已经登录，如果已登录，则返回用户的id
-func (this *BaseController) CheckLogin() int {
-	uid := this.GetSession("uid")
+func (controller *BaseController) CheckLogin() int {
+	uid := controller.GetSession("uid")
 	if uid != nil {
 		id, ok := uid.(int)
 		if ok && id > 0 {
@@ -81,57 +81,57 @@ func (this *BaseController) CheckLogin() int {
 }
 
 //防止跨站攻击，在有表单的控制器放大中调用，不要直接在base控制器中调用，因为用户每访问一个页面都重新刷新cookie了
-func (this *BaseController) Xsrf() {
+func (controller *BaseController) Xsrf() {
 	//使用的时候，直接在模板表单添加{{.xsrfdata}}
-	this.Data["xsrfdata"] = template.HTML(this.XSRFFormHTML())
+	controller.Data["xsrfdata"] = template.HTML(controller.XSRFFormHTML())
 }
 
 //检测用户登录的cookie是否存在
-func (this *BaseController) checkCookieLogin() {
+func (controller *BaseController) checkCookieLogin() {
 	secret := beego.AppConfig.DefaultString("CookieSecret", helper.DEFAULT_COOKIE_SECRET)
-	timestamp, ok := this.GetSecureCookie(secret, "uid")
+	timestamp, ok := controller.GetSecureCookie(secret, "uid")
 	if !ok {
 		return
 	}
-	uid, ok := this.Ctx.GetSecureCookie(secret+timestamp, "token")
+	uid, ok := controller.Ctx.GetSecureCookie(secret+timestamp, "token")
 	if !ok || len(uid) == 0 {
-		this.ResetCookie()
+		controller.ResetCookie()
 	}
 
-	if this.IsLogin = helper.Interface2Int(uid); this.IsLogin > 0 {
-		if info := models.NewUser().UserInfo(this.IsLogin); info.Status == false {
+	if controller.IsLogin = helper.Interface2Int(uid); controller.IsLogin > 0 {
+		if info := models.NewUser().UserInfo(controller.IsLogin); info.Status == false {
 			//被封禁的账号，重置cookie
-			this.ResetCookie()
+			controller.ResetCookie()
 		}
 	}
 }
 
 //重置cookie
-func (this *BaseController) ResetCookie() {
-	this.Ctx.SetCookie("uid", "")
-	this.Ctx.SetCookie("token", "")
+func (controller *BaseController) ResetCookie() {
+	controller.Ctx.SetCookie("uid", "")
+	controller.Ctx.SetCookie("token", "")
 }
 
 //设置用户登录的cookie，其实uid是时间戳的加密，而token才是真正的uid
 //@param            uid         interface{}         用户UID
-func (this *BaseController) SetCookieLogin(uid interface{}) {
+func (controller *BaseController) SetCookieLogin(uid interface{}) {
 	secret := beego.AppConfig.DefaultString("CookieSecret", helper.DEFAULT_COOKIE_SECRET)
 	timestamp := fmt.Sprintf("%v", time.Now().Unix())
 	expire := 3600 * 24 * 365
-	this.Ctx.SetSecureCookie(secret, "uid", timestamp, expire)
-	this.Ctx.SetSecureCookie(secret+timestamp, "token", fmt.Sprintf("%v", uid), expire)
+	controller.Ctx.SetSecureCookie(secret, "uid", timestamp, expire)
+	controller.Ctx.SetSecureCookie(secret+timestamp, "token", fmt.Sprintf("%v", uid), expire)
 }
 
 //校验文档是否已经存在
-func (this *BaseController) DocExist() {
-	if models.NewDocument().IsExistByMd5(this.GetString("md5")) > 0 {
-		this.ResponseJson(true, "文档存在")
+func (controller *BaseController) DocExist() {
+	if models.NewDocument().IsExistByMd5(controller.GetString("md5")) > 0 {
+		controller.ResponseJson(true, "文档存在")
 	}
-	this.ResponseJson(false, "文档不存在")
+	controller.ResponseJson(false, "文档不存在")
 }
 
 //响应json
-func (this *BaseController) ResponseJson(isSuccess bool, msg string, data ...interface{}) {
+func (controller *BaseController) ResponseJson(isSuccess bool, msg string, data ...interface{}) {
 	status := 0
 	if isSuccess {
 		status = 1
@@ -140,30 +140,30 @@ func (this *BaseController) ResponseJson(isSuccess bool, msg string, data ...int
 	if len(data) > 0 {
 		ret["data"] = data[0]
 	}
-	this.Data["json"] = ret
-	this.ServeJSON()
-	this.StopRun()
+	controller.Data["json"] = ret
+	controller.ServeJSON()
+	controller.StopRun()
 }
 
 //单页
-func (this *BaseController) Pages() {
-	alias := this.GetString(":page")
+func (controller *BaseController) Pages() {
+	alias := controller.GetString(":page")
 	page, err := models.NewPages().One(alias)
 	if err != nil {
 		helper.Logger.Error(err.Error())
-		this.Abort("404")
+		controller.Abort("404")
 	}
 	if page.Id == 0 || page.Status == false {
-		this.Abort("404")
+		controller.Abort("404")
 	}
-	this.Data["Seo"] = models.NewSeo().GetByPage("PC-Pages", page.Title, page.Keywords, page.Description, this.Sys.Site)
+	controller.Data["Seo"] = models.NewSeo().GetByPage("PC-Pages", page.Title, page.Keywords, page.Description, controller.Sys.Site)
 	page.Vcnt += 1
 	orm.NewOrm().Update(&page, "Vcnt")
 	cs, _ := models.NewCloudStore(false)
 	page.Content = cs.ImageWithDomain(page.Content)
 
-	this.Data["Page"] = page
-	this.Data["Lists"], _, _ = models.NewPages().List(20, 1)
-	this.Data["PageId"] = "wenku-content"
-	this.TplName = "pages.html"
+	controller.Data["Page"] = page
+	controller.Data["Lists"], _, _ = models.NewPages().List(20, 1)
+	controller.Data["PageId"] = "wenku-content"
+	controller.TplName = "pages.html"
 }

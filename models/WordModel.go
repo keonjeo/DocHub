@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/TruthHun/DocHub/helper"
+	"dochub/helper"
 	"github.com/astaxie/beego/orm"
 )
 
@@ -32,7 +32,7 @@ func GetTableWord() string {
 }
 
 //添加关键字，多个关键字用英文逗号分隔
-func (this *Word) AddWords(wds string, id interface{}) {
+func (model *Word) AddWords(wds string, id interface{}) {
 	var (
 		wdMap   = make(map[string]string) //词汇map
 		wdSlice []interface{}             //词汇切片

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TruthHun/DocHub/helper"
+	"dochub/helper"
 
 	"github.com/astaxie/beego/orm"
 )
@@ -29,7 +29,7 @@ func GetTableDocumentRecycle() string {
 //将文档从回收站中恢复过来，文档的状态必须是-1才可以
 //@param            ids             文档id
 //@return           err             返回错误，nil表示恢复成功，否则恢复失败
-func (this *DocumentRecycle) RecoverFromRecycle(ids ...interface{}) (err error) {
+func (model *DocumentRecycle) RecoverFromRecycle(ids ...interface{}) (err error) {
 	var (
 		docInfo []DocumentInfo
 		dsId    []interface{} //document_store id
@@ -105,7 +105,7 @@ func (this *DocumentRecycle) RecoverFromRecycle(ids ...interface{}) (err error) 
 }
 
 //回收站文档列表
-func (this *DocumentRecycle) RecycleList(p, listRows int) (params []orm.Params, rows int64, err error) {
+func (model *DocumentRecycle) RecycleList(p, listRows int) (params []orm.Params, rows int64, err error) {
 	var sql string
 	tables := []string{GetTableDocumentRecycle() + " dr", GetTableDocument() + " d", GetTableDocumentInfo() + " di", GetTableUser() + " u", GetTableDocumentStore() + " ds"}
 	on := []map[string]string{
@@ -131,7 +131,7 @@ func (this *DocumentRecycle) RecycleList(p, listRows int) (params []orm.Params, 
 //@param            self        是否是用户自己操作
 //@param            ids         文档id，即需要删除的文档id
 //@return           errs        错误
-func (this *DocumentRecycle) RemoveToRecycle(uid interface{}, self bool, ids ...interface{}) (err error) {
+func (model *DocumentRecycle) RemoveToRecycle(uid interface{}, self bool, ids ...interface{}) (err error) {
 	//软删除
 	//1、将文档状态标记为-1
 	//2、将文档id录入到回收站
@@ -234,7 +234,7 @@ func (this *DocumentRecycle) RemoveToRecycle(uid interface{}, self bool, ids ...
 }
 
 // 彻底删除文档，包括删除文档记录（被收藏的记录、用户的发布记录、扣除用户获得的积分(如果此刻文档的状态不是待删除)），删除文档文件
-func (this *DocumentRecycle) DeepDel(ids ...interface{}) (err error) {
+func (model *DocumentRecycle) DeepDel(ids ...interface{}) (err error) {
 	// 文档id找到文档的dsId，再根据dsId查找到全部的文档id
 	// 根据文档id，将文档全部移入回收站
 	// 删除文档记录
@@ -267,12 +267,12 @@ func (this *DocumentRecycle) DeepDel(ids ...interface{}) (err error) {
 		}
 	}
 
-	err = this.RemoveToRecycle(0, false, ids...)
+	err = model.RemoveToRecycle(0, false, ids...)
 	if err != nil {
 		return
 	}
 
-	if err = this.DelRows(ids...); err != nil && err != orm.ErrNoRows {
+	if err = model.DelRows(ids...); err != nil && err != orm.ErrNoRows {
 		return
 	}
 
@@ -286,7 +286,7 @@ func (this *DocumentRecycle) DeepDel(ids ...interface{}) (err error) {
 
 	go func() {
 		for _, item := range store {
-			this.DelFile(item.Md5, item.Ext, item.PreviewExt, item.PreviewPage)
+			model.DelFile(item.Md5, item.Ext, item.PreviewExt, item.PreviewPage)
 		}
 	}()
 
@@ -294,7 +294,7 @@ func (this *DocumentRecycle) DeepDel(ids ...interface{}) (err error) {
 }
 
 //删除文档记录
-func (this *DocumentRecycle) DelRows(ids ...interface{}) (err error) {
+func (model *DocumentRecycle) DelRows(ids ...interface{}) (err error) {
 	//1、删除被收藏的收藏记录
 	//2、删除文档的评论(评分)记录
 	//3、删除document表的记录
@@ -331,7 +331,7 @@ func (this *DocumentRecycle) DelRows(ids ...interface{}) (err error) {
 
 //根据md5，删除文档、封面、预览文件等
 //@param                md5             文档md5
-func (this *DocumentRecycle) DelFile(md5, oriExt, prevExt string, previewPagesCount int) (err error) {
+func (model *DocumentRecycle) DelFile(md5, oriExt, prevExt string, previewPagesCount int) (err error) {
 
 	var (
 		cover         = md5 + ".jpg" //封面文件

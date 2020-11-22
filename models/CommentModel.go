@@ -22,7 +22,7 @@ func GetTableDocumentComment() string {
 }
 
 // 文档评分记录表多字段唯一索引
-func (this *DocumentComment) TableUnique() [][]string {
+func (model *DocumentComment) TableUnique() [][]string {
 	return [][]string{
 		[]string{"Did", "Uid"},
 	}
@@ -35,7 +35,7 @@ func (this *DocumentComment) TableUnique() [][]string {
 //@return           params          返回的数据
 //@return           rows            返回的数据记录数
 //@return           err             返回错误
-func (this *DocumentComment) GetCommentList(did, p, listRows int) (params []orm.Params, rows int64, err error) {
+func (model *DocumentComment) GetCommentList(did, p, listRows int) (params []orm.Params, rows int64, err error) {
 	tables := []string{GetTableDocumentComment() + " c", GetTableUser() + " u"}
 	on := []map[string]string{
 		{"c.Uid": "u.Id"},
@@ -53,7 +53,7 @@ func (this *DocumentComment) GetCommentList(did, p, listRows int) (params []orm.
 //根据文档ID删除文档评论
 //@param                ids             文档id
 //@return               err             错误，nil表示删除成功
-func (this *DocumentComment) DelCommentByDocId(ids ...interface{}) (err error) {
+func (model *DocumentComment) DelCommentByDocId(ids ...interface{}) (err error) {
 	if len(ids) > 0 {
 		_, err = orm.NewOrm().QueryTable(GetTableDocumentComment()).Filter("Did__in", ids...).Delete()
 	}

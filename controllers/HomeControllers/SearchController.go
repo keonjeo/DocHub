@@ -5,9 +5,9 @@ import (
 
 	"time"
 
-	"github.com/TruthHun/DocHub/helper"
-	"github.com/TruthHun/DocHub/helper/conv"
-	"github.com/TruthHun/DocHub/models"
+	"dochub/helper"
+	"dochub/helper/conv"
+	"dochub/models"
 	"github.com/astaxie/beego/orm"
 )
 
@@ -15,7 +15,7 @@ type SearchController struct {
 	BaseController
 }
 
-func (this *SearchController) Get() {
+func (controller *SearchController) Get() {
 
 	var (
 		p        int = 1                                               //默认页码
@@ -29,30 +29,30 @@ func (this *SearchController) Get() {
 	}
 
 	//path中的参数
-	params := conv.Path2Map(this.GetString(":splat"))
+	params := conv.Path2Map(controller.GetString(":splat"))
 	if _, ok := params["wd"]; !ok { //搜索关键字
-		params["wd"] = this.GetString("wd")
+		params["wd"] = controller.GetString("wd")
 	}
 
 	//缺少搜索关键字，直接返回首页
 	if len(params["wd"]) == 0 {
-		this.Redirect("/", 302)
+		controller.Redirect("/", 302)
 		return
 	}
 
 	if _, ok := params["type"]; !ok { //搜索类型
-		params["type"] = this.GetString("type")
+		params["type"] = controller.GetString("type")
 	}
 	params["type"] = helper.Default(params["type"], "all") //默认全部搜索
 	if _, ok := params["sort"]; !ok {                      //排序
-		params["sort"] = this.GetString("sort")
+		params["sort"] = controller.GetString("sort")
 	}
 	params["sort"] = helper.Default(params["sort"], "default") //默认排序
 
 	if _, ok := params["p"]; ok {
 		p = helper.Interface2Int(params["p"])
 	} else {
-		p, _ = this.GetInt("p")
+		p, _ = controller.GetInt("p")
 	}
 
 	//页码处理
@@ -108,11 +108,11 @@ func (this *SearchController) Get() {
 					"ExtCate":     extCate,
 				})
 			}
-			this.Data["Data"] = data
+			controller.Data["Data"] = data
 		}
 
 	} else {
-		this.Data["Data"], res.TotalFound = models.SearchByMysql(params["wd"], params["type"], params["sort"], p, listRows)
+		controller.Data["Data"], res.TotalFound = models.SearchByMysql(params["wd"], params["type"], params["sort"], p, listRows)
 		res.Word = []string{params["wd"]}
 		end := time.Now().UnixNano()
 		res.Time = float64(end-start) / 1000000000
@@ -125,7 +125,7 @@ func (this *SearchController) Get() {
 	}
 
 	if p == 1 {
-		wdSlice := strings.Split(this.Sys.DirtyWord, " ")
+		wdSlice := strings.Split(controller.Sys.DirtyWord, " ")
 		insert := true
 		for _, wd := range wdSlice {
 			//如果含有非法关键字，则不录入搜索词库
@@ -138,15 +138,15 @@ func (this *SearchController) Get() {
 			models.ReplaceInto(models.GetTableSearchLog(), map[string]interface{}{"Wd": params["wd"]})
 		}
 	}
-	this.Data["ElasticSearchOn"] = client.On
-	this.Data["Seo"] = models.NewSeo().GetByPage("PC-Search", params["wd"], "文档搜索,"+params["wd"], "文档搜索,"+params["wd"], this.Sys.Site)
-	this.Data["Page"] = helper.Paginations(6, int(res.Total), listRows, p, "/search/", "type", params["type"], "sort", params["sort"], "p", p, "wd", params["wd"])
-	this.Data["Params"] = params
-	this.Data["Result"] = res
-	this.Data["ListRows"] = listRows
-	this.Data["WordLen"] = len(res.Word) //分词的个数
-	this.Data["SearchLog"] = models.NewSearchLog().List(1, 10)
-	this.Layout = ""
-	this.Data["PageId"] = "wenku-search"
-	this.TplName = "index.html"
+	controller.Data["ElasticSearchOn"] = client.On
+	controller.Data["Seo"] = models.NewSeo().GetByPage("PC-Search", params["wd"], "文档搜索,"+params["wd"], "文档搜索,"+params["wd"], controller.Sys.Site)
+	controller.Data["Page"] = helper.Paginations(6, int(res.Total), listRows, p, "/search/", "type", params["type"], "sort", params["sort"], "p", p, "wd", params["wd"])
+	controller.Data["Params"] = params
+	controller.Data["Result"] = res
+	controller.Data["ListRows"] = listRows
+	controller.Data["WordLen"] = len(res.Word) //分词的个数
+	controller.Data["SearchLog"] = models.NewSearchLog().List(1, 10)
+	controller.Layout = ""
+	controller.Data["PageId"] = "wenku-search"
+	controller.TplName = "index.html"
 }

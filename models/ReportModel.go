@@ -22,14 +22,14 @@ func GetTableReport() string {
 }
 
 // 不良信息举报多字段唯一索引
-func (this *Report) TableUnique() [][]string {
+func (model *Report) TableUnique() [][]string {
 	return [][]string{
 		[]string{"Uid", "Did"},
 	}
 }
 
 //获取未删除的举报数据列表
-func (this *Report) Lists(p, listRows int) (params []orm.Params, rows int64, err error) {
+func (model *Report) Lists(p, listRows int) (params []orm.Params, rows int64, err error) {
 	var sql string
 	tables := []string{GetTableReport() + " r", GetTableUser() + " u", GetTableDocument() + " d"}
 	on := []map[string]string{

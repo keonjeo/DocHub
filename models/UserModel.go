@@ -8,7 +8,7 @@ import (
 
 	"time"
 
-	"github.com/TruthHun/DocHub/helper"
+	"dochub/helper"
 	"github.com/astaxie/beego/orm"
 )
 
@@ -157,7 +157,7 @@ func (u *User) Reg(email, username, password, repassword, intro string) (error, 
 //@return               params          用户信息
 //@return               rows            记录数
 //@return               err             错误
-func (this *User) GetById(id interface{}) (params orm.Params, rows int64, err error) {
+func (model *User) GetById(id interface{}) (params orm.Params, rows int64, err error) {
 	var data []orm.Params
 	tables := []string{GetTableUser() + " u", GetTableUserInfo() + " ui"}
 	on := []map[string]string{
@@ -186,7 +186,7 @@ var (
 
 // 判断用户是否可以下载指定文档
 // err 为 nil 表示可以下载
-func (this *User) CanDownloadFile(uid, docId int) (urlStr string, err error) {
+func (model *User) CanDownloadFile(uid, docId int) (urlStr string, err error) {
 	// 1. 判断用户和文档是否存在
 	// 2. 判断用户是否可以免费下载，如果用户不可以免费下载，则再扣费之后，允许用户免费下载
 	// 3. 文档被下载次数增加，用户(文档下载人和文档分享人)积分变更，并增加两个用户的积分记录

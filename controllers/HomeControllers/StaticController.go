@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/TruthHun/DocHub/helper"
+	"dochub/helper"
 	"github.com/astaxie/beego"
 )
 
@@ -14,12 +14,12 @@ type StaticController struct {
 }
 
 // 将除了static之外的静态资源导向到虚拟根目录
-func (this *StaticController) Static() {
-	splat := strings.TrimPrefix(this.GetString(":splat"), "../")
+func (controller *StaticController) Static() {
+	splat := strings.TrimPrefix(controller.GetString(":splat"), "../")
 	if strings.HasPrefix(splat, ".well-known") {
-		http.ServeFile(this.Ctx.ResponseWriter, this.Ctx.Request, splat)
+		http.ServeFile(controller.Ctx.ResponseWriter, controller.Ctx.Request, splat)
 		return
 	}
 	path := filepath.Join(helper.RootPath, splat)
-	http.ServeFile(this.Ctx.ResponseWriter, this.Ctx.Request, path)
+	http.ServeFile(controller.Ctx.ResponseWriter, controller.Ctx.Request, path)
 }

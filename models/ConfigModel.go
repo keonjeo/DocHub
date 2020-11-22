@@ -13,7 +13,7 @@ import (
 
 	"github.com/astaxie/beego"
 
-	"github.com/TruthHun/DocHub/helper"
+	"dochub/helper"
 
 	"github.com/astaxie/beego/orm"
 )
@@ -149,7 +149,7 @@ func GetTableConfig() string {
 }
 
 // 多字段唯一键
-func (this *Config) TableUnique() [][]string {
+func (model *Config) TableUnique() [][]string {
 	return [][]string{
 		[]string{"Key", "Category"},
 	}
@@ -157,13 +157,13 @@ func (this *Config) TableUnique() [][]string {
 
 //获取全部配置文件
 //@return           configs         所有配置
-func (this *Config) All() (configs []Config) {
+func (model *Config) All() (configs []Config) {
 	orm.NewOrm().QueryTable(GetTableConfig()).All(&configs)
 	return
 }
 
 // 获取云存储配置
-func (this *Config) GetGlobalConfigWithStruct(configCate helper.ConfigCate) (cfg interface{}) {
+func (model *Config) GetGlobalConfigWithStruct(configCate helper.ConfigCate) (cfg interface{}) {
 	switch configCate {
 	case StoreCos:
 		cfg = &ConfigCos{}
@@ -207,7 +207,7 @@ func (this *Config) GetGlobalConfigWithStruct(configCate helper.ConfigCate) (cfg
 	return
 }
 
-func (this *Config) ParseForm(configCate helper.ConfigCate, form url.Values) (cfg interface{}, err error) {
+func (model *Config) ParseForm(configCate helper.ConfigCate, form url.Values) (cfg interface{}, err error) {
 	switch configCate {
 	case StoreCos:
 		cfg = &ConfigCos{}
@@ -277,7 +277,7 @@ func (this *Config) ParseForm(configCate helper.ConfigCate, form url.Values) (cf
 }
 
 // 注意：这里的 cfg 参数是值传递
-func (this *Config) UpdateCloudStore(storeType helper.ConfigCate, cfg interface{}) (err error) {
+func (model *Config) UpdateCloudStore(storeType helper.ConfigCate, cfg interface{}) (err error) {
 	t := reflect.TypeOf(cfg)
 	v := reflect.ValueOf(cfg)
 	numFields := t.Elem().NumField()
@@ -286,7 +286,7 @@ func (this *Config) UpdateCloudStore(storeType helper.ConfigCate, cfg interface{
 	defer func() {
 		if err == nil {
 			o.Commit()
-			this.UpdateGlobalConfig()
+			model.UpdateGlobalConfig()
 		} else {
 			o.Rollback()
 		}
@@ -294,18 +294,18 @@ func (this *Config) UpdateCloudStore(storeType helper.ConfigCate, cfg interface{
 	for i := 0; i < numFields; i++ {
 		key := t.Elem().Field(i).Tag.Get("dochub")
 		params := orm.Params{"Value": v.Elem().Field(i).Interface()}
-		_, err = o.QueryTable(this).Filter("Key", key).Filter("Category", storeType).Update(params)
+		_, err = o.QueryTable(model).Filter("Key", key).Filter("Category", storeType).Update(params)
 		if err != nil {
 			return
 		}
 	}
-	go this.UpdateGlobalConfig()
+	go model.UpdateGlobalConfig()
 	return
 }
 
 //更新全局config配置
-func (this *Config) UpdateGlobalConfig() {
-	cfgs := this.All()
+func (model *Config) UpdateGlobalConfig() {
+	cfgs := model.All()
 	if len(cfgs) == 0 {
 		helper.Logger.Error("查询全局配置失败，config表中全局配置信息为空")
 	}
@@ -315,7 +315,7 @@ func (this *Config) UpdateGlobalConfig() {
 	}
 }
 
-func (this *Config) GetByCate(cate helper.ConfigCate) (configs []Config) {
+func (model *Config) GetByCate(cate helper.ConfigCate) (configs []Config) {
 	orm.NewOrm().QueryTable(GetTableConfig()).Filter("Category", cate).All(&configs)
 	return
 }
@@ -325,7 +325,7 @@ func (this *Config) GetByCate(cate helper.ConfigCate) (configs []Config) {
 //@param            key             配置项
 //@param            val             配置项的值
 //@return           err             错误
-func (this *Config) UpdateByKey(cate helper.ConfigCate, key, val string) (err error) {
+func (model *Config) UpdateByKey(cate helper.ConfigCate, key, val string) (err error) {
 	_, err = orm.NewOrm().QueryTable(GetTableConfig()).Filter("Category", cate).Filter("Key", key).Update(orm.Params{
 		"Value": val,
 	})

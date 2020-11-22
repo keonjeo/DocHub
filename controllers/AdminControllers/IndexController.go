@@ -6,8 +6,8 @@ type IndexController struct {
 	BaseController
 }
 
-func (this *IndexController) Get() {
-	this.Data["BeegoVersion"] = beego.VERSION
-	this.Data["IsIndex"] = true
-	this.TplName = "index.html"
+func (controller *IndexController) Get() {
+	controller.Data["BeegoVersion"] = beego.VERSION
+	controller.Data["IsIndex"] = true
+	controller.TplName = "index.html"
 }

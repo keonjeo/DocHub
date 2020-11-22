@@ -56,7 +56,7 @@ func GetTableSys() string {
 //获取系统配置信息。注意：系统配置信息的记录只有一条，而且id主键为1
 //@return           sys         返回的系统信息
 //@return           err         错误
-func (this *Sys) Get() (sys Sys, err error) {
+func (model *Sys) Get() (sys Sys, err error) {
 	sys.Id = 1
 	err = orm.NewOrm().Read(&sys)
 	return
@@ -65,22 +65,22 @@ func (this *Sys) Get() (sys Sys, err error) {
 //更新系统全局变量
 //@return           sys         返回的系统信息
 //@return           err         错误
-func (this *Sys) UpdateGlobalConfig() {
-	GlobalSys, _ = this.Get()
+func (model *Sys) UpdateGlobalConfig() {
+	GlobalSys, _ = model.Get()
 }
 
 //获取指定指端内容
 //@param			field			需要查询的字段
 //@return			sys				系统配置信息
-func (this *Sys) GetByField(field string) (sys Sys) {
+func (model *Sys) GetByField(field string) (sys Sys) {
 	orm.NewOrm().QueryTable(GetTableSys()).Filter("Id", 1).One(&sys, field)
 	return
 }
 
 //获取举报原因
-func (this *Sys) GetReportReasons() (reasons map[string]string) {
+func (model *Sys) GetReportReasons() (reasons map[string]string) {
 	reasons = make(map[string]string)
-	reasonStr := this.GetByField("ReportReasons").ReportReasons
+	reasonStr := model.GetByField("ReportReasons").ReportReasons
 	if slice := strings.Split(reasonStr, "\n"); len(slice) > 0 {
 		for _, item := range slice {
 			if arr := strings.Split(item, ":"); len(arr) > 1 {
@@ -92,8 +92,8 @@ func (this *Sys) GetReportReasons() (reasons map[string]string) {
 }
 
 //根据序号获取举报原因
-func (this *Sys) GetReportReason(num interface{}) (reason string) {
-	reasons := this.GetReportReasons()
+func (model *Sys) GetReportReason(num interface{}) (reason string) {
+	reasons := model.GetReportReasons()
 	reason, _ = reasons[fmt.Sprintf("%v", num)]
 	return
 }

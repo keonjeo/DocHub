@@ -4,10 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
-
-	"regexp"
 
 	"github.com/astaxie/beego/validation"
 )

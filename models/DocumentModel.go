@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/TruthHun/DocHub/helper"
+	"dochub/helper"
 
 	"errors"
 
@@ -142,24 +142,24 @@ func GetTableDocumentIllegal() string {
 //@param            ds                   文档存储结构对象
 //@return           id                   存储id
 //@return           err                  错误
-func (this *Document) InsertDocStore(ds *DocumentStore) (id int64, err error) {
+func (model *Document) InsertDocStore(ds *DocumentStore) (id int64, err error) {
 	return orm.NewOrm().Insert(&ds)
 }
 
 //文档存入文档表
-func (this *Document) InsertDoc(doc *Document) (int64, error) {
+func (model *Document) InsertDoc(doc *Document) (int64, error) {
 	return orm.NewOrm().Insert(&doc)
 }
 
 //文档信息录入文档信息表
-func (this *Document) InsertDocInfo(info *DocumentInfo) (int64, error) {
+func (model *Document) InsertDocInfo(info *DocumentInfo) (int64, error) {
 	return orm.NewOrm().Insert(&info)
 }
 
 //根据md5判断文档是否是非法文档，如果是非法文档，则返回true
 //@param                md5             md5
 //@return               bool            如果文档存在于非法文档表中，则表示文档非法，否则合法
-func (this *Document) IsIllegal(md5 string) bool {
+func (model *Document) IsIllegal(md5 string) bool {
 	var ilg DocumentIllegal
 	if orm.NewOrm().QueryTable(GetTableDocumentIllegal()).Filter("Md5", md5).One(&ilg); ilg.Id > 0 {
 		return true
@@ -170,7 +170,7 @@ func (this *Document) IsIllegal(md5 string) bool {
 //根据md5判断文档是否是非法文档，如果是非法文档，则返回true
 //@param                id              文档id
 //@return               bool            如果文档存在于非法文档表中，则表示文档非法，否则合法
-func (this *Document) IsIllegalById(id interface{}) bool {
+func (model *Document) IsIllegalById(id interface{}) bool {
 	var ilg DocumentIllegal
 	if orm.NewOrm().QueryTable(GetTableDocumentIllegal()).Filter("Id", id).One(&ilg); ilg.Id > 0 {
 		return true
@@ -183,7 +183,7 @@ func (this *Document) IsIllegalById(id interface{}) bool {
 //@return               params          文档信息
 //@return               rows            记录数
 //@return               err             错误
-func (this *Document) GetById(id interface{}) (doc fullDocument, err error) {
+func (model *Document) GetById(id interface{}) (doc fullDocument, err error) {
 	var sql string
 	tables := []string{GetTableDocumentInfo() + " info", GetTableDocument() + " doc", GetTableDocumentStore() + " ds", GetTableUser() + " u"}
 	fields := map[string][]string{
@@ -209,8 +209,8 @@ func (this *Document) GetById(id interface{}) (doc fullDocument, err error) {
 	return
 }
 
-func (this *Document) GetDocument(id int, fields ...string) (doc Document) {
-	orm.NewOrm().QueryTable(this).Filter("Id", id).One(&doc, fields...)
+func (model *Document) GetDocument(id int, fields ...string) (doc Document) {
+	orm.NewOrm().QueryTable(model).Filter("Id", id).One(&doc, fields...)
 	return
 }
 
@@ -221,7 +221,7 @@ func (this *Document) GetDocument(id int, fields ...string) (doc Document) {
 //@return               params                  列表数据
 //@return               rows                    记录数
 //@return               err                     错误
-func (this *Document) SimpleList(condition string, limit int, orderField ...string) (params []orm.Params, rows int64, err error) {
+func (model *Document) SimpleList(condition string, limit int, orderField ...string) (params []orm.Params, rows int64, err error) {
 	condition = strings.Trim(condition, ",") + " and di.Status in(0,1)"
 	order := "Id"
 	if len(orderField) > 0 {
@@ -250,14 +250,14 @@ func (this *Document) SimpleList(condition string, limit int, orderField ...stri
 //根据md5判断文档是否存在
 //@param                md5str              文档的md5
 //@return               Id                  文档存储表的id
-func (this *Document) IsExistByMd5(md5str string) (Id int) {
+func (model *Document) IsExistByMd5(md5str string) (Id int) {
 	var ds DocumentStore
 	orm.NewOrm().QueryTable(GetTableDocumentStore()).Filter("Md5", md5str).One(&ds)
 	return ds.Id
 }
 
 //文档软删除，即把文档状态标记为-1，操作之后，需要把总文档数量、用户文档数量-1，同时把文档id移入回收站
-func (this *Document) SoftDel(uid int, isAdmin bool, ids ...interface{}) (err error) {
+func (model *Document) SoftDel(uid int, isAdmin bool, ids ...interface{}) (err error) {
 	var (
 		info []DocumentInfo
 	)
@@ -271,7 +271,7 @@ func (this *Document) SoftDel(uid int, isAdmin bool, ids ...interface{}) (err er
 }
 
 //根据document_store表中的id查询document_info表中的数据
-func (this *Document) GetDocInfoByDsId(DsId ...interface{}) (info []DocumentInfo, rows int64, err error) {
+func (model *Document) GetDocInfoByDsId(DsId ...interface{}) (info []DocumentInfo, rows int64, err error) {
 	if l := len(DsId); l > 0 {
 		rows, err = orm.NewOrm().QueryTable(GetTableDocumentInfo()).Filter("DsId__in", DsId...).All(&info)
 	}
@@ -279,7 +279,7 @@ func (this *Document) GetDocInfoByDsId(DsId ...interface{}) (info []DocumentInfo
 }
 
 //根据document_store表中的id查询document_info表中的数据
-func (this *Document) GetDocStoreByDsId(DsId ...interface{}) (store []DocumentStore, rows int64, err error) {
+func (model *Document) GetDocStoreByDsId(DsId ...interface{}) (store []DocumentStore, rows int64, err error) {
 	if l := len(DsId); l > 0 {
 		rows, err = orm.NewOrm().QueryTable(GetTableDocumentStore()).Limit(l).Filter("Id__in", DsId...).All(&store)
 	}
@@ -287,13 +287,13 @@ func (this *Document) GetDocStoreByDsId(DsId ...interface{}) (store []DocumentSt
 }
 
 //根据document_store表中的id查询document_info表中的数据
-func (this *Document) GetOneDocStoreByDsId(DsId interface{}, fields ...string) (store DocumentStore, rows int64, err error) {
+func (model *Document) GetOneDocStoreByDsId(DsId interface{}, fields ...string) (store DocumentStore, rows int64, err error) {
 	err = orm.NewOrm().QueryTable(GetTableDocumentStore()).Filter("Id__in", DsId).One(&store, fields...)
 	return
 }
 
 //根据document_store表中的id查询document_info表中的数据
-func (this *Document) GetDocInfoById(Ids ...interface{}) (info []DocumentInfo, rows int64, err error) {
+func (model *Document) GetDocInfoById(Ids ...interface{}) (info []DocumentInfo, rows int64, err error) {
 	if len(Ids) > 0 {
 		rows, err = orm.NewOrm().QueryTable(GetTableDocumentInfo()).Limit(len(Ids)).Filter("Id__in", Ids...).All(&info)
 	}
@@ -303,7 +303,7 @@ func (this *Document) GetDocInfoById(Ids ...interface{}) (info []DocumentInfo, r
 //把文档标记为非法文档
 //@param                ids             文档id
 //@return               err             错误，nil表示成功
-func (this *Document) SetIllegal(ids ...interface{}) (err error) {
+func (model *Document) SetIllegal(ids ...interface{}) (err error) {
 	if length := int64(len(ids)); length > 0 {
 		var (
 			docInfo []DocumentInfo
@@ -320,7 +320,7 @@ func (this *Document) SetIllegal(ids ...interface{}) (err error) {
 				dsId = append(dsId, v.DsId)
 			}
 
-			if docInfo, length, err = this.GetDocInfoByDsId(dsId...); length > 0 {
+			if docInfo, length, err = model.GetDocInfoByDsId(dsId...); length > 0 {
 				for _, v := range docInfo {
 					did = append(did, v.Id)
 				}
@@ -331,7 +331,7 @@ func (this *Document) SetIllegal(ids ...interface{}) (err error) {
 				}
 
 				//根据dsid查询文档md5，并把md5录入到非法文档表
-				if stores, length, err = this.GetDocStoreByDsId(dsId...); err == nil && length > 0 {
+				if stores, length, err = model.GetDocStoreByDsId(dsId...); err == nil && length > 0 {
 					for _, store := range stores {
 						o.Insert(&DocumentIllegal{Md5: store.Md5})
 					}
@@ -345,7 +345,7 @@ func (this *Document) SetIllegal(ids ...interface{}) (err error) {
 //根据文档id获取文档，并根据ids参数的id顺序返回搜索结果【主要用于搜索】
 //@param                ids             文档id
 //@param                num             记录数量
-func (this *Document) GetDocsByIds(ids interface{}, num ...int) (data []orm.Params) {
+func (model *Document) GetDocsByIds(ids interface{}, num ...int) (data []orm.Params) {
 	var values []orm.Params
 	tables := []string{GetTableDocumentInfo() + " i", GetTableDocument() + " d", GetTableDocumentStore() + " ds"}
 	on := []map[string]string{
@@ -378,14 +378,14 @@ func (this *Document) GetDocsByIds(ids interface{}, num ...int) (data []orm.Para
 }
 
 //文档简易列表
-func (this *Document) TplSimpleList(chinelid interface{}) []orm.Params {
-	data, _, _ := this.SimpleList(fmt.Sprintf("di.ChanelId=%v", helper.Interface2Int(chinelid)), 5)
+func (model *Document) TplSimpleList(chinelid interface{}) []orm.Params {
+	data, _, _ := model.SimpleList(fmt.Sprintf("di.ChanelId=%v", helper.Interface2Int(chinelid)), 5)
 	return data
 }
 
 //根据id查询搜索数据结构
 //@param            id         根据id查询搜索文档
-func (this *Document) GetDocForElasticSearch(id ...int) (es []ElasticSearchData, err error) {
+func (model *Document) GetDocForElasticSearch(id ...int) (es []ElasticSearchData, err error) {
 	var (
 		sql    string
 		params []orm.Params
@@ -443,7 +443,7 @@ func (this *Document) GetDocForElasticSearch(id ...int) (es []ElasticSearchData,
 //@return           infos           文档信息
 //@return           rows            查询到的文档数量
 //@return           err             查询错误
-func (this *Document) GetDocInfoForElasticSearch(page, pageSize int, startTime int, fields ...string) (infos []DocumentInfo, rows int64, err error) {
+func (model *Document) GetDocInfoForElasticSearch(page, pageSize int, startTime int, fields ...string) (infos []DocumentInfo, rows int64, err error) {
 	if len(fields) == 0 {
 		fields = append(fields, "Id")
 	}

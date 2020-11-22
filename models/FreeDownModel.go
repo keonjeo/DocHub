@@ -26,7 +26,7 @@ func GetTableFreeDown() string {
 //@param            uid         用户id
 //@param            did         文档id，document id
 //@return           isFree      是否免费
-func (this *FreeDown) IsFreeDown(uid, did interface{}) (isFree bool) {
+func (model *FreeDown) IsFreeDown(uid, did interface{}) (isFree bool) {
 	var free FreeDown
 	orm.NewOrm().QueryTable(GetTableFreeDown()).Filter("Uid", uid).Filter("Did", did).One(&free)
 	if free.Id > 0 && free.TimeCreate+NewSys().GetByField("FreeDay").FreeDay > int(time.Now().Unix()) {

@@ -12,9 +12,9 @@ import (
 
 	"os"
 
-	"github.com/TruthHun/DocHub/helper"
-	"github.com/TruthHun/DocHub/helper/conv"
-	"github.com/TruthHun/DocHub/models"
+	"dochub/helper"
+	"dochub/helper/conv"
+	"dochub/models"
 	"github.com/astaxie/beego/orm"
 	"github.com/astaxie/beego/validation"
 )
@@ -23,15 +23,15 @@ type UserController struct {
 	BaseController
 }
 
-func (this *UserController) Prepare() {
-	this.BaseController.Prepare()
-	this.Xsrf()
+func (controller *UserController) Prepare() {
+	controller.BaseController.Prepare()
+	controller.Xsrf()
 }
 
 //会员中心
-func (this *UserController) Get() {
-	uid, _ := this.GetInt(":uid")
-	path := this.GetString(":splat")
+func (controller *UserController) Get() {
+	uid, _ := controller.GetInt(":uid")
+	path := controller.GetString(":splat")
 	params := conv.Path2Map(path)
 	//排序
 	sort := "new"
@@ -76,12 +76,12 @@ func (this *UserController) Get() {
 		p = 1
 	}
 	if uid < 1 {
-		uid = this.IsLogin
+		uid = controller.IsLogin
 	}
-	this.Data["Uid"] = uid
+	controller.Data["Uid"] = uid
 
 	if uid <= 0 {
-		this.Redirect("/user/login", 302)
+		controller.Redirect("/user/login", 302)
 		return
 	}
 
@@ -91,7 +91,7 @@ func (this *UserController) Get() {
 		helper.Logger.Error(err.Error())
 	}
 	if rows == 0 {
-		this.Redirect("/", 302)
+		controller.Redirect("/", 302)
 		return
 	}
 
@@ -100,11 +100,11 @@ func (this *UserController) Get() {
 		var params []orm.Params
 		orm.NewOrm().Raw(sql, cid).Values(&params)
 		if len(params) == 0 {
-			this.Redirect(fmt.Sprintf("/user/%v/collect", uid), 302)
+			controller.Redirect(fmt.Sprintf("/user/%v/collect", uid), 302)
 			return
 		}
 
-		this.Data["Folder"] = params[0]
+		controller.Data["Folder"] = params[0]
 		fields := "di.Id,di.`Uid`, di.`Cid`, di.`TimeCreate`, di.`Dcnt`, di.`Vcnt`, di.`Ccnt`, di.`Score`, di.`Status`, di.`ChanelId`, di.`Pid`,c.Title Category,u.Username,d.Title,ds.`Md5`, ds.`Ext`, ds.`ExtCate`, ds.`ExtNum`, ds.`Page`, ds.`Size`"
 		sqlFormat := `
 							select %v from %v di left join %v u on di.Uid=u.Id
@@ -129,50 +129,50 @@ func (this *UserController) Get() {
 
 		var data []orm.Params
 		orm.NewOrm().Raw(sql).Values(&data)
-		this.Data["Lists"] = data
-		this.Data["Page"] = helper.Paginations(6, helper.Interface2Int(params[0]["Cnt"]), listRows, p, fmt.Sprintf("/user/%v/doc/cid/%v", user["Id"], cid), "sort", sort, "style", style)
+		controller.Data["Lists"] = data
+		controller.Data["Page"] = helper.Paginations(6, helper.Interface2Int(params[0]["Cnt"]), listRows, p, fmt.Sprintf("/user/%v/doc/cid/%v", user["Id"], cid), "sort", sort, "style", style)
 	} else {
-		this.Data["Lists"], _, _ = models.GetDocList(uid, 0, 0, 0, p, listRows, sort, 1, 0)
-		this.Data["Page"] = helper.Paginations(6, helper.Interface2Int(user["Document"]), listRows, p, fmt.Sprintf("/user/%v/doc", user["Id"]), "sort", sort, "style", style)
+		controller.Data["Lists"], _, _ = models.GetDocList(uid, 0, 0, 0, p, listRows, sort, 1, 0)
+		controller.Data["Page"] = helper.Paginations(6, helper.Interface2Int(user["Document"]), listRows, p, fmt.Sprintf("/user/%v/doc", user["Id"]), "sort", sort, "style", style)
 	}
 
-	this.Data["Tab"] = "doc"
-	this.Data["Cid"] = cid
-	this.Data["User"] = user
-	this.Data["PageId"] = "wenku-user"
-	this.Data["IsUser"] = true
-	this.Data["Sort"] = sort
-	this.Data["Style"] = style
-	this.Data["P"] = p
-	this.Data["Seo"] = models.NewSeo().GetByPage("PC-Ucenter-Doc", "文档列表-会员中心-"+user["Username"].(string), "会员中心,文档列表,"+user["Username"].(string), "文档列表-会员中心-"+user["Username"].(string), this.Sys.Site)
-	this.Data["Ranks"], _, err = models.NewUser().UserList(1, 8, "i.Document desc", "u.Id,u.Username,u.Avatar,u.Intro,i.Document", "i.Status=1")
+	controller.Data["Tab"] = "doc"
+	controller.Data["Cid"] = cid
+	controller.Data["User"] = user
+	controller.Data["PageId"] = "wenku-user"
+	controller.Data["IsUser"] = true
+	controller.Data["Sort"] = sort
+	controller.Data["Style"] = style
+	controller.Data["P"] = p
+	controller.Data["Seo"] = models.NewSeo().GetByPage("PC-Ucenter-Doc", "文档列表-会员中心-"+user["Username"].(string), "会员中心,文档列表,"+user["Username"].(string), "文档列表-会员中心-"+user["Username"].(string), controller.Sys.Site)
+	controller.Data["Ranks"], _, err = models.NewUser().UserList(1, 8, "i.Document desc", "u.Id,u.Username,u.Avatar,u.Intro,i.Document", "i.Status=1")
 	if err != nil {
 		helper.Logger.Error(err.Error())
 	}
-	this.TplName = "index.html"
+	controller.TplName = "index.html"
 
 }
 
 //金币记录
-func (this *UserController) Coin() {
-	uid, _ := this.GetInt(":uid")
-	p, _ := this.GetInt("p", 1)
+func (controller *UserController) Coin() {
+	uid, _ := controller.GetInt(":uid")
+	p, _ := controller.GetInt("p", 1)
 	if p < 1 {
 		p = 1
 	}
 	if uid < 1 {
-		uid = this.IsLogin
+		uid = controller.IsLogin
 	}
 
 	if uid <= 0 {
-		this.Redirect("/user/login", 302)
+		controller.Redirect("/user/login", 302)
 		return
 	}
 
 	listRows := 16
 	lists, _, _ := models.GetList(models.GetTableCoinLog(), p, listRows, orm.NewCondition().And("Uid", uid), "-Id")
 	if p > 1 { // 当页码大于0，则以 JSON 返回数据
-		this.ResponseJson(true, "数据获取成功", lists)
+		controller.ResponseJson(true, "数据获取成功", lists)
 	}
 
 	user, rows, err := models.NewUser().GetById(uid)
@@ -180,46 +180,46 @@ func (this *UserController) Coin() {
 		helper.Logger.Error(err.Error())
 	}
 	if rows == 0 {
-		this.Redirect("/", 302)
+		controller.Redirect("/", 302)
 		return
 	}
 
-	this.Data["Lists"] = lists
-	this.Data["User"] = user
-	this.Data["PageId"] = "wenku-user"
-	this.Data["Tab"] = "coin"
-	this.Data["IsUser"] = true
-	this.Data["Ranks"], _, err = models.NewUser().UserList(1, 8, "i.Document desc", "u.Id,u.Username,u.Avatar,u.Intro,i.Document", "i.Status=1")
+	controller.Data["Lists"] = lists
+	controller.Data["User"] = user
+	controller.Data["PageId"] = "wenku-user"
+	controller.Data["Tab"] = "coin"
+	controller.Data["IsUser"] = true
+	controller.Data["Ranks"], _, err = models.NewUser().UserList(1, 8, "i.Document desc", "u.Id,u.Username,u.Avatar,u.Intro,i.Document", "i.Status=1")
 	if err != nil {
 		helper.Logger.Error(err.Error())
 	}
-	this.Data["Seo"] = models.NewSeo().GetByPage("PC-Ucenter-Coin", "财富记录—会员中心-"+user["Username"].(string), "会员中心,财富记录,"+user["Username"].(string), "财富记录—会员中心-"+user["Username"].(string), this.Sys.Site)
-	this.TplName = "coin.html"
+	controller.Data["Seo"] = models.NewSeo().GetByPage("PC-Ucenter-Coin", "财富记录—会员中心-"+user["Username"].(string), "会员中心,财富记录,"+user["Username"].(string), "财富记录—会员中心-"+user["Username"].(string), controller.Sys.Site)
+	controller.TplName = "coin.html"
 
 }
 
 // 收藏夹
-func (this *UserController) Collect() {
-	this.Data["Tab"] = "collect"
-	action := this.GetString("action")
-	uid, _ := this.GetInt(":uid")
-	p, _ := this.GetInt("p", 1)
+func (controller *UserController) Collect() {
+	controller.Data["Tab"] = "collect"
+	action := controller.GetString("action")
+	uid, _ := controller.GetInt(":uid")
+	p, _ := controller.GetInt("p", 1)
 	if p < 1 {
 		p = 1
 	}
 	if uid < 1 {
-		uid = this.IsLogin
+		uid = controller.IsLogin
 	}
 
 	if uid <= 0 {
-		this.Redirect("/user/login", 302)
+		controller.Redirect("/user/login", 302)
 		return
 	}
 
 	listRows := 100
 	lists, _, _ := models.GetList(models.GetTableCollectFolder(), p, listRows, orm.NewCondition().And("Uid", uid), "-Id")
 	if p > 1 { // 页码大于1，以 JSON 返回数据
-		this.ResponseJson(true, "数据获取成功", lists)
+		controller.ResponseJson(true, "数据获取成功", lists)
 	}
 
 	user, rows, err := models.NewUser().GetById(uid)
@@ -227,41 +227,41 @@ func (this *UserController) Collect() {
 		helper.Logger.Error(err.Error())
 	}
 	if rows == 0 {
-		this.Redirect("/", 302)
+		controller.Redirect("/", 302)
 		return
 	}
-	this.Data["Lists"] = lists
-	this.Data["User"] = user
-	this.Data["PageId"] = "wenku-user"
-	this.Data["IsUser"] = true
-	this.Data["Uid"] = uid
-	this.Data["Ranks"], _, err = models.NewUser().UserList(1, 8, "i.Document desc", "u.Id,u.Username,u.Avatar,u.Intro,i.Document", "i.Status=1")
+	controller.Data["Lists"] = lists
+	controller.Data["User"] = user
+	controller.Data["PageId"] = "wenku-user"
+	controller.Data["IsUser"] = true
+	controller.Data["Uid"] = uid
+	controller.Data["Ranks"], _, err = models.NewUser().UserList(1, 8, "i.Document desc", "u.Id,u.Username,u.Avatar,u.Intro,i.Document", "i.Status=1")
 	if err != nil {
 		helper.Logger.Error(err.Error())
 	}
-	this.TplName = "collect.html"
-	this.Data["Seo"] = models.NewSeo().GetByPage("PC-Ucenter-Folder", "收藏夹—会员中心-"+user["Username"].(string), "会员中心,收藏夹,"+user["Username"].(string), "收藏夹—会员中心-"+user["Username"].(string), this.Sys.Site)
+	controller.TplName = "collect.html"
+	controller.Data["Seo"] = models.NewSeo().GetByPage("PC-Ucenter-Folder", "收藏夹—会员中心-"+user["Username"].(string), "会员中心,收藏夹,"+user["Username"].(string), "收藏夹—会员中心-"+user["Username"].(string), controller.Sys.Site)
 	if action == "edit" {
-		this.Data["Edit"] = true
+		controller.Data["Edit"] = true
 	} else {
-		this.Data["Edit"] = false
+		controller.Data["Edit"] = false
 	}
 }
 
 //用户登录
-func (this *UserController) Login() {
+func (controller *UserController) Login() {
 
-	if this.IsLogin > 0 {
-		this.Redirect("/user", 302)
+	if controller.IsLogin > 0 {
+		controller.Redirect("/user", 302)
 		return
 	}
 
 	// GET 请求
-	if this.Ctx.Request.Method == "GET" {
-		this.Data["Seo"] = models.NewSeo().GetByPage("PC-Login", "会员登录", "会员登录", "会员登录", this.Sys.Site)
-		this.Data["IsUser"] = true
-		this.Data["PageId"] = "wenku-reg"
-		this.TplName = "login.html"
+	if controller.Ctx.Request.Method == "GET" {
+		controller.Data["Seo"] = models.NewSeo().GetByPage("PC-Login", "会员登录", "会员登录", "会员登录", controller.Sys.Site)
+		controller.Data["IsUser"] = true
+		controller.Data["PageId"] = "wenku-reg"
+		controller.TplName = "login.html"
 		return
 	}
 
@@ -273,11 +273,11 @@ func (this *UserController) Login() {
 		Email, Password string
 	}
 
-	this.ParseForm(&post)
+	controller.ParseForm(&post)
 	valid := validation.Validation{}
 	res := valid.Email(post.Email, "Email")
 	if !res.Ok {
-		this.ResponseJson(false, "登录失败，邮箱格式不正确")
+		controller.ResponseJson(false, "登录失败，邮箱格式不正确")
 	}
 
 	ModelUser := models.NewUser()
@@ -286,99 +286,99 @@ func (this *UserController) Login() {
 		if err != nil {
 			helper.Logger.Error(err.Error())
 		}
-		this.ResponseJson(false, "登录失败，邮箱或密码不正确")
+		controller.ResponseJson(false, "登录失败，邮箱或密码不正确")
 	}
 
 	user := users[0]
-	this.IsLogin = helper.Interface2Int(user["Id"])
+	controller.IsLogin = helper.Interface2Int(user["Id"])
 
-	if this.IsLogin > 0 {
+	if controller.IsLogin > 0 {
 		//查询用户有没有被封禁
-		if info := ModelUser.UserInfo(this.IsLogin); info.Status == false { //被封禁了
-			this.ResponseJson(false, "登录失败，您的账号已被管理员禁用")
+		if info := ModelUser.UserInfo(controller.IsLogin); info.Status == false { //被封禁了
+			controller.ResponseJson(false, "登录失败，您的账号已被管理员禁用")
 		}
-		this.BaseController.SetCookieLogin(this.IsLogin)
-		this.ResponseJson(true, "登录成功")
+		controller.BaseController.SetCookieLogin(controller.IsLogin)
+		controller.ResponseJson(true, "登录成功")
 	}
-	this.ResponseJson(false, "登录失败，未知错误！")
+	controller.ResponseJson(false, "登录失败，未知错误！")
 }
 
 //用户退出登录
-func (this *UserController) Logout() {
-	this.ResetCookie()
-	if v, ok := this.Ctx.Request.Header["X-Requested-With"]; ok && v[0] == "XMLHttpRequest" {
-		this.ResponseJson(true, "退出登录成功")
+func (controller *UserController) Logout() {
+	controller.ResetCookie()
+	if v, ok := controller.Ctx.Request.Header["X-Requested-With"]; ok && v[0] == "XMLHttpRequest" {
+		controller.ResponseJson(true, "退出登录成功")
 	}
-	this.Redirect("/", 302)
+	controller.Redirect("/", 302)
 }
 
 //会员注册[GET/POST]
-func (this *UserController) Reg() {
-	if this.IsLogin > 0 {
-		this.Redirect("/user", 302)
+func (controller *UserController) Reg() {
+	if controller.IsLogin > 0 {
+		controller.Redirect("/user", 302)
 		return
 	}
 
-	if this.Ctx.Request.Method == "GET" {
-		this.Data["IsUser"] = true
-		this.Data["Seo"] = models.NewSeo().GetByPage("PC-Login", "会员注册", "会员注册", "会员注册", this.Sys.Site)
-		this.Data["PageId"] = "wenku-reg"
-		if this.Sys.IsCloseReg {
-			this.TplName = "regclose.html"
+	if controller.Ctx.Request.Method == "GET" {
+		controller.Data["IsUser"] = true
+		controller.Data["Seo"] = models.NewSeo().GetByPage("PC-Login", "会员注册", "会员注册", "会员注册", controller.Sys.Site)
+		controller.Data["PageId"] = "wenku-reg"
+		if controller.Sys.IsCloseReg {
+			controller.TplName = "regclose.html"
 		} else {
-			this.TplName = "reg.html"
+			controller.TplName = "reg.html"
 		}
 		return
 	}
 
-	if this.Sys.IsCloseReg {
-		this.ResponseJson(false, "注册失败，站点已关闭注册功能")
+	if controller.Sys.IsCloseReg {
+		controller.ResponseJson(false, "注册失败，站点已关闭注册功能")
 	}
 
 	//先验证邮箱验证码是否正确
-	email := this.GetString("email")
-	code := this.GetString("code")
-	if this.Sys.CheckRegEmail {
-		sessEmail := fmt.Sprintf("%v", this.GetSession("RegMail"))
-		sessCode := fmt.Sprintf("%v", this.GetSession("RegCode"))
+	email := controller.GetString("email")
+	code := controller.GetString("code")
+	if controller.Sys.CheckRegEmail {
+		sessEmail := fmt.Sprintf("%v", controller.GetSession("RegMail"))
+		sessCode := fmt.Sprintf("%v", controller.GetSession("RegCode"))
 		if sessEmail != email || sessCode != code {
-			this.ResponseJson(false, "邮箱验证码不正确，请重新输入或重新获取")
+			controller.ResponseJson(false, "邮箱验证码不正确，请重新输入或重新获取")
 		}
 	}
 
 	// 注册
 	err, uid := models.NewUser().Reg(
 		email,
-		this.GetString("username"),
-		this.GetString("password"),
-		this.GetString("repassword"),
-		this.GetString("intro"),
+		controller.GetString("username"),
+		controller.GetString("password"),
+		controller.GetString("repassword"),
+		controller.GetString("intro"),
 	)
 	if err != nil {
-		this.ResponseJson(false, err.Error())
+		controller.ResponseJson(false, err.Error())
 	}
 
 	models.Regulate(models.GetTableSys(), "CntUser", 1, "Id=1") //站点用户数量增加
-	this.IsLogin = uid
-	this.SetCookieLogin(uid)
-	this.ResponseJson(true, "会员注册成功")
+	controller.IsLogin = uid
+	controller.SetCookieLogin(uid)
+	controller.ResponseJson(true, "会员注册成功")
 }
 
 // 发送邮件
-func (this *UserController) SendMail() {
-	beego.Info(this.Ctx.GetCookie("_xsrf"))
+func (controller *UserController) SendMail() {
+	beego.Info(controller.Ctx.GetCookie("_xsrf"))
 
 	//发送邮件的类型：注册(reg)和找回密码(findpwd)
-	t := this.GetString("type")
+	t := controller.GetString("type")
 	if t != "reg" && t != "findpwd" {
-		this.ResponseJson(false, "邮件发送类型不正确")
+		controller.ResponseJson(false, "邮件发送类型不正确")
 	}
 
 	valid := validation.Validation{}
-	email := this.GetString("email")
+	email := controller.GetString("email")
 	res := valid.Email(email, "mail")
 	if res.Error != nil || !res.Ok {
-		this.ResponseJson(false, "邮箱格式不正确")
+		controller.ResponseJson(false, "邮箱格式不正确")
 	}
 
 	//检测邮箱是否已被注册
@@ -388,111 +388,111 @@ func (this *UserController) SendMail() {
 	//注册邮件
 	if t == "reg" {
 		if user.Id > 0 {
-			this.ResponseJson(false, "该邮箱已经被注册会员")
+			controller.ResponseJson(false, "该邮箱已经被注册会员")
 		}
 
 		code := helper.RandStr(6, 0)
-		err := models.NewEmail().SendMail(email, fmt.Sprintf("%v会员注册验证码", this.Sys.Site), strings.Replace(this.Sys.TplEmailReg, "{code}", code, -1))
+		err := models.NewEmail().SendMail(email, fmt.Sprintf("%v会员注册验证码", controller.Sys.Site), strings.Replace(controller.Sys.TplEmailReg, "{code}", code, -1))
 		if err != nil {
 			helper.Logger.Error("邮件发送失败：%v", err.Error())
-			this.ResponseJson(false, "邮件发送失败，请联系管理员检查邮箱配置是否正确")
+			controller.ResponseJson(false, "邮件发送失败，请联系管理员检查邮箱配置是否正确")
 		}
 
-		this.SetSession("RegMail", email)
-		this.SetSession("RegCode", code)
-		this.ResponseJson(true, "邮件发送成功，请打开邮箱查看验证码")
+		controller.SetSession("RegMail", email)
+		controller.SetSession("RegCode", code)
+		controller.ResponseJson(true, "邮件发送成功，请打开邮箱查看验证码")
 	}
 
 	// 找回密码
 	if user.Id == 0 {
-		this.ResponseJson(false, "邮箱不存在")
+		controller.ResponseJson(false, "邮箱不存在")
 	}
 
 	code := helper.RandStr(6, 0)
-	err := models.NewEmail().SendMail(email, fmt.Sprintf("%v找回密码验证码", this.Sys.Site), strings.Replace(this.Sys.TplEmailFindPwd, "{code}", code, -1))
+	err := models.NewEmail().SendMail(email, fmt.Sprintf("%v找回密码验证码", controller.Sys.Site), strings.Replace(controller.Sys.TplEmailFindPwd, "{code}", code, -1))
 	if err != nil {
 		helper.Logger.Error("邮件发送失败：%v", err.Error())
-		this.ResponseJson(false, "邮件发送失败，请联系管理员检查邮箱配置是否正确")
+		controller.ResponseJson(false, "邮件发送失败，请联系管理员检查邮箱配置是否正确")
 	}
 
-	this.SetSession("FindPwdMail", email)
-	this.SetSession("FindPwdCode", code)
-	this.ResponseJson(true, "邮件发送成功，请打开邮箱查看验证码")
+	controller.SetSession("FindPwdMail", email)
+	controller.SetSession("FindPwdCode", code)
+	controller.ResponseJson(true, "邮件发送成功，请打开邮箱查看验证码")
 }
 
 //会员签到，增加金币
-func (this *UserController) Sign() {
+func (controller *UserController) Sign() {
 
-	if this.IsLogin == 0 {
-		this.ResponseJson(false, "签到失败，请先登录")
+	if controller.IsLogin == 0 {
+		controller.ResponseJson(false, "签到失败，请先登录")
 	}
 
 	var data = models.Sign{
-		Uid:  this.IsLogin,
+		Uid:  controller.IsLogin,
 		Date: time.Now().Format("20060102"),
 	}
 	_, err := orm.NewOrm().Insert(&data)
 	if err != nil {
-		this.ResponseJson(false, "签到失败，您今天已签到")
+		controller.ResponseJson(false, "签到失败，您今天已签到")
 	}
 
-	if err = models.Regulate(models.GetTableUserInfo(), "Coin", this.Sys.Sign, fmt.Sprintf("Id=%v", this.IsLogin)); err == nil {
+	if err = models.Regulate(models.GetTableUserInfo(), "Coin", controller.Sys.Sign, fmt.Sprintf("Id=%v", controller.IsLogin)); err == nil {
 		log := models.CoinLog{
-			Uid:  this.IsLogin,
-			Coin: this.Sys.Sign,
-			Log:  fmt.Sprintf("签到成功，获得 %v 个金币", this.Sys.Sign),
+			Uid:  controller.IsLogin,
+			Coin: controller.Sys.Sign,
+			Log:  fmt.Sprintf("签到成功，获得 %v 个金币", controller.Sys.Sign),
 		}
 		models.NewCoinLog().LogRecord(log)
 	}
-	this.ResponseJson(true, fmt.Sprintf("恭喜您，今日签到成功，领取了 %v 个金币", this.Sys.Sign))
+	controller.ResponseJson(true, fmt.Sprintf("恭喜您，今日签到成功，领取了 %v 个金币", controller.Sys.Sign))
 }
 
 // 检测用户是否已登录
-func (this *UserController) CheckLogin() {
-	if this.BaseController.IsLogin > 0 {
-		this.ResponseJson(true, "已登录")
+func (controller *UserController) CheckLogin() {
+	if controller.BaseController.IsLogin > 0 {
+		controller.ResponseJson(true, "已登录")
 	}
-	this.ResponseJson(false, "您当前处于未登录状态，请先登录")
+	controller.ResponseJson(false, "您当前处于未登录状态，请先登录")
 }
 
 // 创建收藏夹
-func (this *UserController) CreateCollectFolder() {
+func (controller *UserController) CreateCollectFolder() {
 
-	if this.IsLogin == 0 {
-		this.ResponseJson(false, "您当前未登录，请先登录")
+	if controller.IsLogin == 0 {
+		controller.ResponseJson(false, "您当前未登录，请先登录")
 	}
 
 	cover := ""
 	timestamp := int(time.Now().Unix())
 
 	//文件在文档库中未存在，则接收文件并做处理
-	f, fh, err := this.GetFile("Cover")
+	f, fh, err := controller.GetFile("Cover")
 	if err == nil {
 		defer f.Close()
 		slice := strings.Split(fh.Filename, ".")
 		ext := slice[len(slice)-1]
-		dir := fmt.Sprintf("./uploads/%v/%v/", time.Now().Format("2006-01-02"), this.IsLogin)
+		dir := fmt.Sprintf("./uploads/%v/%v/", time.Now().Format("2006-01-02"), controller.IsLogin)
 		os.MkdirAll(dir, 0777)
-		file := helper.MD5Crypt(fmt.Sprintf("%v-%v-%v", timestamp, this.IsLogin, fh.Filename)) + "." + ext
+		file := helper.MD5Crypt(fmt.Sprintf("%v-%v-%v", timestamp, controller.IsLogin, fh.Filename)) + "." + ext
 
 		tmpFile := dir + file
-		err = this.SaveToFile("Cover", tmpFile)
+		err = controller.SaveToFile("Cover", tmpFile)
 		if err != nil {
 			helper.Logger.Error(err.Error())
-			this.ResponseJson(false, "封面保存失败")
+			controller.ResponseJson(false, "封面保存失败")
 		}
 		defer os.RemoveAll(tmpFile)
 
 		if err = helper.CropImage(tmpFile, helper.CoverWidth, helper.CoverHeight); err != nil {
 			helper.Logger.Error(err.Error())
-			this.ResponseJson(false, "封面裁剪失败")
+			controller.ResponseJson(false, "封面裁剪失败")
 		}
 
 		//将图片移动到OSS
 		var cs *models.CloudStore
 		if cs, err = models.NewCloudStore(false); err != nil {
 			helper.Logger.Error(err.Error())
-			this.ResponseJson(false, "连接云存储失败")
+			controller.ResponseJson(false, "连接云存储失败")
 		}
 		if err = cs.Upload(tmpFile, file); err != nil {
 			helper.Logger.Error(err.Error())
@@ -503,16 +503,16 @@ func (this *UserController) CreateCollectFolder() {
 
 	// 收藏夹
 	folder := models.CollectFolder{
-		Uid:         this.IsLogin,
-		Title:       this.GetString("Title"),
-		Description: this.GetString("Description"),
+		Uid:         controller.IsLogin,
+		Title:       controller.GetString("Title"),
+		Description: controller.GetString("Description"),
 		TimeCreate:  int(time.Now().Unix()),
 		Cnt:         0,
 		Cover:       cover,
 	}
 
 	// 收藏夹 Id 大于0，则表示编辑收藏夹
-	folder.Id, _ = this.GetInt("Id")
+	folder.Id, _ = controller.GetInt("Id")
 
 	if folder.Id > 0 { // 编辑收藏夹
 		cols := []string{"Title", "Description"}
@@ -520,35 +520,35 @@ func (this *UserController) CreateCollectFolder() {
 			cols = append(cols, "Cover")
 		}
 		if _, err = orm.NewOrm().Update(&folder, cols...); err == nil {
-			this.ResponseJson(true, "收藏夹编辑成功")
+			controller.ResponseJson(true, "收藏夹编辑成功")
 		}
 	} else { // 创建收藏夹
 		if _, err = orm.NewOrm().Insert(&folder); err == nil { //收藏夹数量+1
-			models.Regulate(models.GetTableUserInfo(), "Collect", 1, "Id=?", this.IsLogin)
-			this.ResponseJson(true, "收藏夹创建成功")
+			models.Regulate(models.GetTableUserInfo(), "Collect", 1, "Id=?", controller.IsLogin)
+			controller.ResponseJson(true, "收藏夹创建成功")
 		}
 	}
 
 	if err != nil {
 		helper.Logger.Error(err.Error())
-		this.ResponseJson(false, "操作失败，请重试")
+		controller.ResponseJson(false, "操作失败，请重试")
 	}
 
-	this.ResponseJson(true, "操作成功")
+	controller.ResponseJson(true, "操作成功")
 }
 
 // 找回密码
-func (this *UserController) FindPwd() {
-	if this.IsLogin > 0 {
-		this.Redirect("/user", 302)
+func (controller *UserController) FindPwd() {
+	if controller.IsLogin > 0 {
+		controller.Redirect("/user", 302)
 		return
 	}
 
-	if this.Ctx.Request.Method == "GET" {
-		this.Data["Seo"] = models.NewSeo().GetByPage("PC-Findpwd", "找回密码", "找回密码", "找回密码", this.Sys.Site)
-		this.Data["IsUser"] = true
-		this.Data["PageId"] = "wenku-reg"
-		this.TplName = "findpwd.html"
+	if controller.Ctx.Request.Method == "GET" {
+		controller.Data["Seo"] = models.NewSeo().GetByPage("PC-Findpwd", "找回密码", "找回密码", "找回密码", controller.Sys.Site)
+		controller.Data["IsUser"] = true
+		controller.Data["PageId"] = "wenku-reg"
+		controller.TplName = "findpwd.html"
 		return
 	}
 
@@ -560,98 +560,98 @@ func (this *UserController) FindPwd() {
 		"repassword": {"required", "mincount:6"},
 	}
 
-	params, errs := helper.Valid(this.Ctx.Request.Form, rules)
+	params, errs := helper.Valid(controller.Ctx.Request.Form, rules)
 	if len(errs) > 0 {
 		if _, ok := errs["username"]; ok {
-			this.ResponseJson(false, "用户名限2-16个字符")
+			controller.ResponseJson(false, "用户名限2-16个字符")
 		}
 		if _, ok := errs["email"]; ok {
-			this.ResponseJson(false, "邮箱格式不正确")
+			controller.ResponseJson(false, "邮箱格式不正确")
 		}
 		if _, ok := errs["code"]; ok {
-			this.ResponseJson(false, "请输入6位验证码")
+			controller.ResponseJson(false, "请输入6位验证码")
 		}
 		if _, ok := errs["password"]; ok {
-			this.ResponseJson(false, "密码长度，至少6个字符")
+			controller.ResponseJson(false, "密码长度，至少6个字符")
 		}
 		if _, ok := errs["repassword"]; ok {
-			this.ResponseJson(false, "密码长度，至少6个字符")
+			controller.ResponseJson(false, "密码长度，至少6个字符")
 		}
 	}
 
 	//校验验证码和邮箱是否匹配
-	if fmt.Sprintf("%v", this.GetSession("FindPwdMail")) != params["email"].(string) || fmt.Sprintf("%v", this.GetSession("FindPwdCode")) != params["code"].(string) {
-		this.ResponseJson(false, "验证码不正确，修改密码失败")
+	if fmt.Sprintf("%v", controller.GetSession("FindPwdMail")) != params["email"].(string) || fmt.Sprintf("%v", controller.GetSession("FindPwdCode")) != params["code"].(string) {
+		controller.ResponseJson(false, "验证码不正确，修改密码失败")
 	}
 	pwd := helper.MD5Crypt(params["password"].(string))
 	repwd := helper.MD5Crypt(params["repassword"].(string))
 	if pwd != repwd {
-		this.ResponseJson(false, "确认密码和密码不一致")
+		controller.ResponseJson(false, "确认密码和密码不一致")
 	}
 
 	user := models.NewUser().GetUserField(orm.NewCondition().And("Email", params["email"]))
 	if user.Id == 0 || user.Username != params["username"].(string) {
-		this.ResponseJson(false, "重置密码失败，用户名与邮箱不匹配")
+		controller.ResponseJson(false, "重置密码失败，用户名与邮箱不匹配")
 	}
 
 	_, err := models.UpdateByIds("user", "Password", pwd, user.Id)
 	if err != nil {
 		helper.Logger.Error(err.Error())
-		this.ResponseJson(false, "重置密码失败，请刷新页面重试")
+		controller.ResponseJson(false, "重置密码失败，请刷新页面重试")
 	}
-	this.DelSession("FindPwdMail")
-	this.DelSession("FindPwdCode")
-	this.ResponseJson(true, "重置密码成功，请重新登录")
+	controller.DelSession("FindPwdMail")
+	controller.DelSession("FindPwdCode")
+	controller.ResponseJson(true, "重置密码成功，请重新登录")
 }
 
 //删除文档
-func (this *UserController) DocDel() {
+func (controller *UserController) DocDel() {
 
-	if this.IsLogin == 0 {
-		this.ResponseJson(false, "请先登录")
+	if controller.IsLogin == 0 {
+		controller.ResponseJson(false, "请先登录")
 	}
 
-	docid, _ := this.GetInt(":doc")
+	docid, _ := controller.GetInt(":doc")
 	if docid == 0 {
-		this.ResponseJson(false, "删除失败，文档不存在")
+		controller.ResponseJson(false, "删除失败，文档不存在")
 	}
 
-	err := models.NewDocumentRecycle().RemoveToRecycle(this.IsLogin, true, docid)
+	err := models.NewDocumentRecycle().RemoveToRecycle(controller.IsLogin, true, docid)
 	if err != nil {
 		helper.Logger.Error("删除失败：%v", err.Error())
-		this.ResponseJson(false, "删除失败，文档不存在")
+		controller.ResponseJson(false, "删除失败，文档不存在")
 	}
 
-	this.ResponseJson(true, "删除成功")
+	controller.ResponseJson(true, "删除成功")
 }
 
 //文档编辑
-func (this *UserController) DocEdit() {
+func (controller *UserController) DocEdit() {
 
-	if this.IsLogin == 0 {
-		this.Redirect("/user", 302)
+	if controller.IsLogin == 0 {
+		controller.Redirect("/user", 302)
 	}
 
-	docId, _ := this.GetInt(":doc")
+	docId, _ := controller.GetInt(":doc")
 	if docId == 0 {
-		this.Redirect("/user", 302)
+		controller.Redirect("/user", 302)
 	}
 
 	info := models.DocumentInfo{Id: docId}
 	err := orm.NewOrm().Read(&info)
 	if err != nil {
 		helper.Logger.Error(err.Error())
-		this.Redirect("/user", 302)
+		controller.Redirect("/user", 302)
 	}
 
-	if info.Uid != this.IsLogin { // 文档所属用户id与登录的用户id不一致
-		this.Redirect("/user", 302)
+	if info.Uid != controller.IsLogin { // 文档所属用户id与登录的用户id不一致
+		controller.Redirect("/user", 302)
 	}
 
 	doc := models.Document{Id: docId}
 
 	// POST
-	if this.Ctx.Request.Method == "POST" {
+	if controller.Ctx.Request.Method == "POST" {
 		ruels := map[string][]string{
 			"Title":  {"required", "unempty"},
 			"Chanel": {"required", "gt:0", "int"},
@@ -661,9 +661,9 @@ func (this *UserController) DocEdit() {
 			"Intro":  {"required"},
 			"Price":  {"required", "int"},
 		}
-		params, errs := helper.Valid(this.Ctx.Request.Form, ruels)
+		params, errs := helper.Valid(controller.Ctx.Request.Form, ruels)
 		if len(errs) > 0 {
-			this.ResponseJson(false, "参数错误")
+			controller.ResponseJson(false, "参数错误")
 		}
 		doc.Title = params["Title"].(string)
 		doc.Keywords = params["Tags"].(string)
@@ -679,82 +679,82 @@ func (this *UserController) DocEdit() {
 		models.Regulate(models.GetTableCategory(), "Cnt", -1, fmt.Sprintf("Id in(%v,%v,%v)", info.ChanelId, info.Cid, info.Pid))
 		//新分类+1
 		models.Regulate(models.GetTableCategory(), "Cnt", 1, fmt.Sprintf("Id in(%v,%v,%v)", params["Chanel"], params["Cid"], params["Pid"]))
-		this.ResponseJson(true, "文档编辑成功")
+		controller.ResponseJson(true, "文档编辑成功")
 	}
 
 	// GET
 	err = orm.NewOrm().Read(&doc)
 	if err != nil {
 		helper.Logger.Error(err.Error())
-		this.Redirect("/user", 302)
+		controller.Redirect("/user", 302)
 	}
 
 	cond := orm.NewCondition().And("status", 1)
 	data, _, _ := models.GetList(models.GetTableCategory(), 1, 2000, cond, "sort")
-	this.Data["User"], _, _ = models.NewUser().GetById(this.IsLogin)
-	this.Data["Ranks"], _, err = models.NewUser().UserList(1, 8, "i.Document desc", "u.Id,u.Username,u.Avatar,u.Intro,i.Document", "i.Status=1")
-	this.Data["IsUser"] = true
-	this.Data["Cates"], _ = conv.InterfaceToJson(data)
-	this.Data["json"] = data
-	this.Data["PageId"] = "wenku-user"
-	this.Data["Info"] = info
-	this.Data["Doc"] = doc
-	this.Data["Tab"] = "doc"
-	this.TplName = "edit.html"
+	controller.Data["User"], _, _ = models.NewUser().GetById(controller.IsLogin)
+	controller.Data["Ranks"], _, err = models.NewUser().UserList(1, 8, "i.Document desc", "u.Id,u.Username,u.Avatar,u.Intro,i.Document", "i.Status=1")
+	controller.Data["IsUser"] = true
+	controller.Data["Cates"], _ = conv.InterfaceToJson(data)
+	controller.Data["json"] = data
+	controller.Data["PageId"] = "wenku-user"
+	controller.Data["Info"] = info
+	controller.Data["Doc"] = doc
+	controller.Data["Tab"] = "doc"
+	controller.TplName = "edit.html"
 }
 
 //删除收藏(针对收藏夹)
-func (this *UserController) CollectFolderDel() {
-	cid, _ := this.GetInt(":cid")
-	if cid > 0 && this.IsLogin > 0 {
-		err := models.NewCollect().DelFolder(cid, this.IsLogin)
+func (controller *UserController) CollectFolderDel() {
+	cid, _ := controller.GetInt(":cid")
+	if cid > 0 && controller.IsLogin > 0 {
+		err := models.NewCollect().DelFolder(cid, controller.IsLogin)
 		if err != nil {
 			helper.Logger.Error(err.Error())
-			this.ResponseJson(false, err.Error())
+			controller.ResponseJson(false, err.Error())
 		}
-		this.ResponseJson(true, "收藏夹删除成功")
+		controller.ResponseJson(true, "收藏夹删除成功")
 	}
-	this.ResponseJson(false, "删除失败，参数错误")
+	controller.ResponseJson(false, "删除失败，参数错误")
 }
 
 //取消收藏(针对文档)
-func (this *UserController) CollectCancel() {
-	cid, _ := this.GetInt(":cid")
-	did, _ := this.GetInt(":did")
-	if err := models.NewCollect().Cancel(did, cid, this.IsLogin); err != nil {
+func (controller *UserController) CollectCancel() {
+	cid, _ := controller.GetInt(":cid")
+	did, _ := controller.GetInt(":did")
+	if err := models.NewCollect().Cancel(did, cid, controller.IsLogin); err != nil {
 		helper.Logger.Error(err.Error())
-		this.ResponseJson(false, "移除收藏失败，可能您为收藏该文档")
+		controller.ResponseJson(false, "移除收藏失败，可能您为收藏该文档")
 	}
-	this.ResponseJson(true, "移除收藏成功")
+	controller.ResponseJson(true, "移除收藏成功")
 }
 
 //更换头像
-func (this *UserController) Avatar() {
+func (controller *UserController) Avatar() {
 
-	if this.IsLogin == 0 {
-		this.ResponseJson(false, "请先登录")
+	if controller.IsLogin == 0 {
+		controller.ResponseJson(false, "请先登录")
 	}
 
-	dir := fmt.Sprintf("./uploads/%v/%v", time.Now().Format("2006-01-02"), this.IsLogin)
+	dir := fmt.Sprintf("./uploads/%v/%v", time.Now().Format("2006-01-02"), controller.IsLogin)
 	os.MkdirAll(dir, 0777)
-	f, fh, err := this.GetFile("Avatar")
+	f, fh, err := controller.GetFile("Avatar")
 	if err != nil {
-		helper.Logger.Error("用户(%v)更新头像失败：%v", this.IsLogin, err.Error())
-		this.ResponseJson(false, "头像文件上传失败")
+		helper.Logger.Error("用户(%v)更新头像失败：%v", controller.IsLogin, err.Error())
+		controller.ResponseJson(false, "头像文件上传失败")
 	}
 	defer f.Close()
 
 	ext := strings.ToLower(strings.TrimLeft(filepath.Ext(fh.Filename), "."))
 	if !(ext == "jpg" || ext == "jpeg" || ext == "png" || ext == "gif") {
-		this.ResponseJson(false, "头像图片格式只支持jpg、jpeg、png和gif")
+		controller.ResponseJson(false, "头像图片格式只支持jpg、jpeg、png和gif")
 	}
 
-	tmpFile := dir + "/" + helper.MD5Crypt(fmt.Sprintf("%v-%v-%v", fh.Filename, this.IsLogin, time.Now().Unix())) + "." + ext
+	tmpFile := dir + "/" + helper.MD5Crypt(fmt.Sprintf("%v-%v-%v", fh.Filename, controller.IsLogin, time.Now().Unix())) + "." + ext
 	saveFile := helper.MD5Crypt(tmpFile) + "." + ext
-	err = this.SaveToFile("Avatar", tmpFile)
+	err = controller.SaveToFile("Avatar", tmpFile)
 	if err != nil {
-		helper.Logger.Error("用户(%v)头像保存失败：%v", this.IsLogin, err.Error())
-		this.ResponseJson(false, "头像文件保存失败")
+		helper.Logger.Error("用户(%v)头像保存失败：%v", controller.IsLogin, err.Error())
+		controller.ResponseJson(false, "头像文件保存失败")
 	}
 
 	//头像裁剪
@@ -765,36 +765,36 @@ func (this *UserController) Avatar() {
 	var cs *models.CloudStore
 	if cs, err = models.NewCloudStore(false); err != nil {
 		helper.Logger.Error(err.Error())
-		this.ResponseJson(false, "内部服务错误：云存储连接失败")
+		controller.ResponseJson(false, "内部服务错误：云存储连接失败")
 	}
 
 	err = cs.Upload(tmpFile, saveFile)
 	if err != nil {
 		helper.Logger.Error(err.Error())
-		this.ResponseJson(false, "头像文件保存失败")
+		controller.ResponseJson(false, "头像文件保存失败")
 	}
 	os.RemoveAll(tmpFile)
 
 	//查询数据库用户数据
-	var user = models.User{Id: this.IsLogin}
+	var user = models.User{Id: controller.IsLogin}
 	orm.NewOrm().Read(&user)
 	oldAvatar := user.Avatar
 	user.Avatar = saveFile
 	rows, err := orm.NewOrm().Update(&user, "Avatar")
 	if rows > 0 && err == nil {
-		this.ResponseJson(true, "头像更新成功")
+		controller.ResponseJson(true, "头像更新成功")
 		go cs.Delete(oldAvatar)
 	}
 	if err != nil {
 		helper.Logger.Error(err.Error())
 	}
-	this.ResponseJson(false, "头像更新失败")
+	controller.ResponseJson(false, "头像更新失败")
 }
 
 //编辑个人信息
-func (this *UserController) Edit() {
-	if this.IsLogin == 0 {
-		this.ResponseJson(false, "请先登录")
+func (controller *UserController) Edit() {
+	if controller.IsLogin == 0 {
+		controller.ResponseJson(false, "请先登录")
 	}
 	changepwd := false
 	cols := []string{"Intro"}
@@ -804,27 +804,27 @@ func (this *UserController) Edit() {
 		"RePassword":  {"required"},
 		"Intro":       {"required"},
 	}
-	params, errs := helper.Valid(this.Ctx.Request.Form, rules)
+	params, errs := helper.Valid(controller.Ctx.Request.Form, rules)
 	if len(errs) > 0 {
-		this.ResponseJson(false, "参数不正确")
+		controller.ResponseJson(false, "参数不正确")
 	}
-	var user = models.User{Id: this.IsLogin}
+	var user = models.User{Id: controller.IsLogin}
 	orm.NewOrm().Read(&user)
 	if len(params["OldPassword"].(string)) > 0 || len(params["NewPassword"].(string)) > 0 || len(params["RePassword"].(string)) > 0 {
 		if len(params["NewPassword"].(string)) < 6 || len(params["RePassword"].(string)) < 6 {
-			this.ResponseJson(false, "密码长度必须至少6个字符")
+			controller.ResponseJson(false, "密码长度必须至少6个字符")
 		}
 		opwd := helper.MD5Crypt(params["OldPassword"].(string))
 		npwd := helper.MD5Crypt(params["NewPassword"].(string))
 		rpwd := helper.MD5Crypt(params["RePassword"].(string))
 		if user.Password != opwd {
-			this.ResponseJson(false, "原密码不正确")
+			controller.ResponseJson(false, "原密码不正确")
 		}
 		if npwd != rpwd {
-			this.ResponseJson(false, "确认密码和新密码必须一致")
+			controller.ResponseJson(false, "确认密码和新密码必须一致")
 		}
 		if opwd == npwd {
-			this.ResponseJson(false, "确认密码不能与原密码相同")
+			controller.ResponseJson(false, "确认密码不能与原密码相同")
 		}
 		user.Password = rpwd
 		cols = append(cols, "Password")
@@ -834,14 +834,14 @@ func (this *UserController) Edit() {
 	affected, err := orm.NewOrm().Update(&user, cols...)
 	if err != nil {
 		helper.Logger.Error(err.Error())
-		this.ResponseJson(false, "设置失败，请刷新页面重试")
+		controller.ResponseJson(false, "设置失败，请刷新页面重试")
 	}
 	if affected == 0 {
-		this.ResponseJson(true, "设置失败，可能您未对内容做更改")
+		controller.ResponseJson(true, "设置失败，可能您未对内容做更改")
 	}
 	if changepwd {
-		this.ResetCookie()
-		this.ResponseJson(true, "设置成功，您设置了新密码，请重新登录")
+		controller.ResetCookie()
+		controller.ResponseJson(true, "设置成功，您设置了新密码，请重新登录")
 	}
-	this.ResponseJson(true, "设置成功")
+	controller.ResponseJson(true, "设置成功")
 }

@@ -29,7 +29,7 @@ func (s *Sign) TableUnique() [][]string {
 }
 
 //检测用户今天是否已签到
-func (this *Sign) DoesSign(uid int) bool {
+func (model *Sign) DoesSign(uid int) bool {
 	if _, rows, err := GetList(GetTableSign(), 1, 1, orm.NewCondition().And("Date", time.Now().Format("20060102")).And("Uid", uid)); err == nil && rows > 0 {
 		return true
 	}

@@ -6,7 +6,7 @@ import (
 
 	"time"
 
-	"github.com/TruthHun/DocHub/helper"
+	"dochub/helper"
 	"github.com/astaxie/beego/orm"
 )
 
@@ -39,7 +39,7 @@ func GetTableDocumentRemark() string {
 //@param            id              document_store表中的ID[TODO:注意！！！！(这里加TODO，主要是为了在IDE上更显眼)]
 //@return           rm              文档备注
 //@return           err             文档错误
-func (this *DocumentRemark) GetParseContentByDocId(docid interface{}) (rm DocumentRemark, err error) {
+func (model *DocumentRemark) GetParseContentByDocId(docid interface{}) (rm DocumentRemark, err error) {
 	err = orm.NewOrm().QueryTable(GetTableDocumentRemark()).Filter("Id", docid).One(&rm)
 	return
 }
@@ -47,10 +47,10 @@ func (this *DocumentRemark) GetParseContentByDocId(docid interface{}) (rm Docume
 //获取内容模板
 //@param            DsId            文档DsId
 //@return           rm              生成的文档备注模板
-func (this *DocumentRemark) GetContentTplByDsId(DsId int) (rm DocumentRemark) {
+func (model *DocumentRemark) GetContentTplByDsId(DsId int) (rm DocumentRemark) {
 	rm.Id = DsId
 	if err := orm.NewOrm().Read(&rm); err != nil || rm.Id == 0 {
-		return this.GetDefaultTpl(DsId)
+		return model.GetDefaultTpl(DsId)
 	}
 	return rm
 }
@@ -58,7 +58,7 @@ func (this *DocumentRemark) GetContentTplByDsId(DsId int) (rm DocumentRemark) {
 //获取文档备注模板
 //@param            DsId            文档DsId
 //@return           rm              生成的文档备注模板
-func (this *DocumentRemark) GetDefaultTpl(DsId int) (rm DocumentRemark) {
+func (model *DocumentRemark) GetDefaultTpl(DsId int) (rm DocumentRemark) {
 	rm.Id = DsId
 	rm.Status = false
 	rm.AllowDownload = true
@@ -72,7 +72,7 @@ func (this *DocumentRemark) GetDefaultTpl(DsId int) (rm DocumentRemark) {
 }
 
 //根据dsid判断文档是否已存在备注
-func (this *DocumentRemark) IsRemark(dsid interface{}) bool {
+func (model *DocumentRemark) IsRemark(dsid interface{}) bool {
 	var rm = DocumentRemark{Id: helper.Interface2Int(dsid)}
 	if rm.Id > 0 {
 		if orm.NewOrm().Read(&rm); rm.TimeCreate > 0 {
@@ -85,7 +85,7 @@ func (this *DocumentRemark) IsRemark(dsid interface{}) bool {
 //新增或更改内容，如果TimeCreate为0，表示新增，否则表示更新
 //@param                rm              备注内容
 //@return               err             返回错误，nil表示成功
-func (this *DocumentRemark) Insert(rm DocumentRemark) (err error) {
+func (model *DocumentRemark) Insert(rm DocumentRemark) (err error) {
 	if rm.TimeCreate == 0 {
 		rm.TimeCreate = int(time.Now().Unix())
 		_, err = orm.NewOrm().Insert(&rm)

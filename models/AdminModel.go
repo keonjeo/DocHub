@@ -1,7 +1,7 @@
 package models
 
 import (
-	"github.com/TruthHun/DocHub/helper"
+	"dochub/helper"
 	"github.com/astaxie/beego/orm"
 )
 
@@ -27,7 +27,7 @@ func GetTableAdmin() string {
 //@param            code                登录暗号
 //@return           admin               管理员数据结构，如果登录成功，管理员id大于0
 //@return           err                 SQL查询过程中出现的错误
-func (this *Admin) Login(username, password, code string) (admin Admin, err error) {
+func (model *Admin) Login(username, password, code string) (admin Admin, err error) {
 	admin = Admin{Username: username, Password: helper.MD5Crypt(password), Code: code}
 	err = orm.NewOrm().Read(&admin, "Username", "Password", "Code")
 	return
@@ -37,7 +37,7 @@ func (this *Admin) Login(username, password, code string) (admin Admin, err erro
 //@param            id          管理员id
 //@return           admin       管理员信息
 //@return           err         错误信息
-func (this *Admin) GetById(id int) (admin Admin, err error) {
+func (model *Admin) GetById(id int) (admin Admin, err error) {
 	admin.Id = id
 	err = orm.NewOrm().Read(&admin)
 	return

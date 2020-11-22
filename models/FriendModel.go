@@ -25,7 +25,7 @@ func GetTableFriend() string {
 //@return           links           友链数组
 //@return           rows            记录数
 //@return           err             错误
-func (this *Friend) GetListByStatus(status int) (links []Friend, rows int64, err error) {
+func (model *Friend) GetListByStatus(status int) (links []Friend, rows int64, err error) {
 	qs := orm.NewOrm().QueryTable(GetTableFriend())
 	if status == 0 || status == 1 {
 		qs = qs.Filter("Status", status)
@@ -35,7 +35,7 @@ func (this *Friend) GetListByStatus(status int) (links []Friend, rows int64, err
 }
 
 //获取友链
-func (this *Friend) Friends() (links []Friend) {
-	links, _, _ = this.GetListByStatus(1)
+func (model *Friend) Friends() (links []Friend) {
+	links, _, _ = model.GetListByStatus(1)
 	return
 }

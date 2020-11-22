@@ -3,7 +3,7 @@ package models
 import (
 	"errors"
 
-	"github.com/TruthHun/DocHub/helper"
+	"dochub/helper"
 	"github.com/astaxie/beego/orm"
 )
 
@@ -28,7 +28,7 @@ func GetTableCategory() string {
 }
 
 // 多字段唯一索引
-func (this *Category) TableUnique() [][]string {
+func (model *Category) TableUnique() [][]string {
 	return [][]string{
 		[]string{"Pid", "Title"},
 	}
@@ -37,15 +37,15 @@ func (this *Category) TableUnique() [][]string {
 //根据传递过来的id从分类表中查询标题
 //@param                id              主键id
 //@return               title           返回查询的标题名称
-func (this *Category) GetTitleById(id interface{}) (title string) {
-	orm.NewOrm().QueryTable(GetTableCategory()).Filter("Id", id).One(this, "Title")
-	return this.Title
+func (model *Category) GetTitleById(id interface{}) (title string) {
+	orm.NewOrm().QueryTable(GetTableCategory()).Filter("Id", id).One(model, "Title")
+	return model.Title
 }
 
 //根据id删除分类
 //@param                id              需要删除的分类id
 //@return               err             错误，nil表示删除成功
-func (this *Category) Del(id ...interface{}) (err error) {
+func (model *Category) Del(id ...interface{}) (err error) {
 	var (
 		cate     Category
 		affected int64
@@ -63,7 +63,7 @@ func (this *Category) Del(id ...interface{}) (err error) {
 //获取同级分类
 //@param                id              当前同级分类的id
 //@return               cates           分类列表数据
-func (this *Category) GetSameLevelCategoryById(id interface{}) (cates []Category) {
+func (model *Category) GetSameLevelCategoryById(id interface{}) (cates []Category) {
 	cate := Category{Id: helper.Interface2Int(id)}
 	o := orm.NewOrm()
 	o.Read(&cate)
@@ -72,8 +72,8 @@ func (this *Category) GetSameLevelCategoryById(id interface{}) (cates []Category
 }
 
 // 根据父级id获取分类
-func (this *Category) GetByPid(pid int, status ...bool) (categories []Category) {
-	q := orm.NewOrm().QueryTable(this).Filter("Pid", pid).OrderBy("Sort")
+func (model *Category) GetByPid(pid int, status ...bool) (categories []Category) {
+	q := orm.NewOrm().QueryTable(model).Filter("Pid", pid).OrderBy("Sort")
 	if len(status) > 0 {
 		q = q.Filter("Status", status[0])
 	}
@@ -82,8 +82,8 @@ func (this *Category) GetByPid(pid int, status ...bool) (categories []Category) 
 }
 
 // get all categories
-func (this *Category) GetAll(status ...bool) (count int64, categories []Category) {
-	q := orm.NewOrm().QueryTable(this)
+func (model *Category) GetAll(status ...bool) (count int64, categories []Category) {
+	q := orm.NewOrm().QueryTable(model)
 	if len(status) > 0 {
 		q = q.Filter("status", status[0])
 	}
@@ -91,12 +91,12 @@ func (this *Category) GetAll(status ...bool) (count int64, categories []Category
 	return
 }
 
-func (this *Category) GetCategoriesById(id ...interface{}) (cates []Category, err error) {
+func (model *Category) GetCategoriesById(id ...interface{}) (cates []Category, err error) {
 	if len(id) == 0 {
 		return
 	}
 
-	_, err = orm.NewOrm().QueryTable(this).Filter("Id__in", id...).All(&cates)
+	_, err = orm.NewOrm().QueryTable(model).Filter("Id__in", id...).All(&cates)
 	if err != nil {
 		helper.Logger.Error(err.Error())
 	}

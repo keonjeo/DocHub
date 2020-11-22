@@ -1,7 +1,8 @@
 package models
 
 import (
-	"github.com/TruthHun/DocHub/helper"
+	"dochub/helper"
+
 	"github.com/astaxie/beego/orm"
 )
 
@@ -28,7 +29,7 @@ func GetTableBanner() string {
 //@param            id              横幅id
 //@return           affected        影响的记录数
 //@return           err             错误
-func (this *Banner) Del(id ...interface{}) (affected int64, err error) {
+func (model *Banner) Del(id ...interface{}) (affected int64, err error) {
 
 	if len(id) == 0 {
 		return
@@ -69,7 +70,7 @@ func (this *Banner) Del(id ...interface{}) (affected int64, err error) {
 //@return           banners         返回列表
 //@return           rows            返回记录数
 //@return           err             错误
-func (this *Banner) List(p, listRows int, status ...int) (banners []Banner, rows int64, err error) {
+func (model *Banner) List(p, listRows int, status ...int) (banners []Banner, rows int64, err error) {
 	qs := orm.NewOrm().QueryTable(GetTableBanner()).OrderBy("Sort", "-Status", "-Id").Limit(listRows).Offset((p - 1) * listRows)
 	if len(status) > 0 {
 		qs.Filter("Status__in", status)

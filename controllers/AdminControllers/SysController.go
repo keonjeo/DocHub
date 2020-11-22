@@ -11,8 +11,8 @@ import (
 
 	"os"
 
-	"github.com/TruthHun/DocHub/helper"
-	"github.com/TruthHun/DocHub/models"
+	"dochub/helper"
+	"dochub/models"
 	"github.com/astaxie/beego/orm"
 )
 
@@ -27,37 +27,37 @@ type logFile struct {
 }
 
 //系统配置管理
-func (this *SysController) Get() {
-	tab := helper.ConfigCate(strings.ToLower(this.GetString("tab")))
+func (controller *SysController) Get() {
+	tab := helper.ConfigCate(strings.ToLower(controller.GetString("tab")))
 	var err error
 	switch tab {
 	case models.ConfigCateEmail, models.ConfigCateDepend, models.ConfigCateElasticSearch, models.ConfigCateLog:
 	default:
 		tab = "default"
 	}
-	if this.Ctx.Request.Method == http.MethodPost {
+	if controller.Ctx.Request.Method == http.MethodPost {
 		defer func() {
 			models.NewSys().UpdateGlobalConfig()
 			models.NewConfig().UpdateGlobalConfig()
 		}()
 		if tab == "default" {
 			var sys models.Sys
-			this.ParseForm(&sys)
+			controller.ParseForm(&sys)
 			_, err := orm.NewOrm().Update(&sys)
 			if err != nil {
 				helper.Logger.Error(err.Error())
-				this.ResponseJson(false, err.Error())
+				controller.ResponseJson(false, err.Error())
 			}
-			this.ResponseJson(true, "更新成功")
+			controller.ResponseJson(true, "更新成功")
 		}
 
 		var cfg interface{}
-		cfg, err = models.NewConfig().ParseForm(tab, this.Ctx.Request.Form)
+		cfg, err = models.NewConfig().ParseForm(tab, controller.Ctx.Request.Form)
 		if cfg != nil {
 			switch tab {
 			case models.ConfigCateEmail:
 				if err != nil {
-					this.ResponseJson(false, err.Error())
+					controller.ResponseJson(false, err.Error())
 				}
 				modelEmail := cfg.(*models.ConfigEmail)
 				err = modelEmail.SendMail(modelEmail.TestUserEmail, "测试邮件", "这是一封测试邮件，用于检测是否能正常发送邮件")
@@ -72,7 +72,7 @@ func (this *SysController) Get() {
 			}
 		}
 		if err != nil {
-			this.ResponseJson(false, err.Error(), cfg)
+			controller.ResponseJson(false, err.Error(), cfg)
 		}
 
 		o := orm.NewOrm()
@@ -85,29 +85,29 @@ func (this *SysController) Get() {
 			}
 		}()
 
-		for k, v := range this.Ctx.Request.Form {
+		for k, v := range controller.Ctx.Request.Form {
 			if _, err = o.QueryTable(models.GetTableConfig()).Filter("Category", tab).Filter("Key", k).Update(orm.Params{"Value": v[0]}); err != nil {
 				helper.Logger.Error(err.Error())
-				this.ResponseJson(false, "ElasticSearch初始化失败："+err.Error())
+				controller.ResponseJson(false, "ElasticSearch初始化失败："+err.Error())
 			}
 		}
 
-		this.ResponseJson(true, "更新成功")
+		controller.ResponseJson(true, "更新成功")
 	}
 
-	this.Data["Tab"] = tab
-	this.Data["Title"] = "系统管理"
-	this.Data["IsSys"] = true
-	this.Data["Store"] = this.GetString("store", string(models.StoreOss))
+	controller.Data["Tab"] = tab
+	controller.Data["Title"] = "系统管理"
+	controller.Data["IsSys"] = true
+	controller.Data["Store"] = controller.GetString("store", string(models.StoreOss))
 	if tab == "default" {
-		this.Data["Sys"], _ = models.NewSys().Get()
+		controller.Data["Sys"], _ = models.NewSys().Get()
 	} else {
-		this.Data["Configs"] = models.NewConfig().All()
+		controller.Data["Configs"] = models.NewConfig().All()
 		if tab == models.ConfigCateElasticSearch {
 			count, errES := models.NewElasticSearchClient().Count()
-			this.Data["Count"] = count
+			controller.Data["Count"] = count
 			if errES != nil {
-				this.Data["ErrES"] = errES.Error()
+				controller.Data["ErrES"] = errES.Error()
 			}
 		} else if tab == "logs" {
 			var logs []logFile
@@ -122,39 +122,39 @@ func (this *SysController) Get() {
 					}
 				}
 			}
-			this.Data["Logs"] = logs
+			controller.Data["Logs"] = logs
 		}
 	}
-	this.TplName = "index.html"
+	controller.TplName = "index.html"
 }
 
 //下载或者删除日志文件
-func (this *SysController) HandleLogs() {
-	file := this.GetString("file")
-	action := this.GetString("action")
+func (controller *SysController) HandleLogs() {
+	file := controller.GetString("file")
+	action := controller.GetString("action")
 	if action == "del" { //删除
 		if ext := filepath.Ext(file); ext == ".log" {
 			if file == "logs/dochub.log" {
-				this.Response(map[string]interface{}{"status": 0, "msg": "日志文件删除失败：logs/dochub.log日志文件禁止删除，否则程序无法写入日志"})
+				controller.Response(map[string]interface{}{"status": 0, "msg": "日志文件删除失败：logs/dochub.log日志文件禁止删除，否则程序无法写入日志"})
 			}
 			if err := os.Remove(file); err != nil {
-				this.Response(map[string]interface{}{"status": 0, "msg": "日志文件删除失败：" + err.Error()})
+				controller.Response(map[string]interface{}{"status": 0, "msg": "日志文件删除失败：" + err.Error()})
 			}
 		}
-		this.Response(map[string]interface{}{"status": 1, "msg": "删除成功"})
+		controller.Response(map[string]interface{}{"status": 1, "msg": "删除成功"})
 	} else { //下载
 		if b, err := ioutil.ReadFile(file); err != nil {
 			helper.Logger.Error(err.Error())
-			this.Abort("404")
+			controller.Abort("404")
 		} else {
-			this.Ctx.ResponseWriter.Header().Add("Content-disposition", "attachment; filename="+filepath.Base(file))
-			this.Ctx.ResponseWriter.Write(b)
+			controller.Ctx.ResponseWriter.Header().Add("Content-disposition", "attachment; filename="+filepath.Base(file))
+			controller.Ctx.ResponseWriter.Write(b)
 		}
 	}
 }
 
 //重建全量索引
-func (this *SysController) RebuildAllIndex() {
+func (controller *SysController) RebuildAllIndex() {
 	resp := map[string]interface{}{
 		"status": 0, "msg": "全量索引重建失败",
 	}
@@ -185,60 +185,60 @@ func (this *SysController) RebuildAllIndex() {
 	} else {
 		resp["msg"] = "全量索引重建失败，您未启用ElasticSearch"
 	}
-	this.Response(resp)
+	controller.Response(resp)
 }
 
 //测试邮箱是否能发件成功
-func (this *SysController) TestForSendingEmail() {
+func (controller *SysController) TestForSendingEmail() {
 	to := helper.GetConfig(models.ConfigCateEmail, "test")
 	if err := models.NewEmail().SendMail(to, "测试邮件", "这是一封测试邮件，用于检测是否能正常发送邮件"); err != nil {
-		this.Response(map[string]interface{}{"status": 0, "msg": "邮件发送失败：" + err.Error()})
+		controller.Response(map[string]interface{}{"status": 0, "msg": "邮件发送失败：" + err.Error()})
 	}
-	this.Response(map[string]interface{}{"status": 1, "msg": "邮件发送成功"})
+	controller.Response(map[string]interface{}{"status": 1, "msg": "邮件发送成功"})
 }
 
 // 云存储配置
-func (this *SysController) CloudStore() {
-	tab := this.GetString("tab", models.GlobalSys.StoreType)
+func (controller *SysController) CloudStore() {
+	tab := controller.GetString("tab", models.GlobalSys.StoreType)
 	modelConfig := models.NewConfig()
-	this.Data["Config"] = modelConfig.GetByCate(helper.ConfigCate(tab))
-	this.Data["Tab"] = tab
-	this.Data["IsCloudStore"] = true
-	this.TplName = "cloud-store.html"
+	controller.Data["Config"] = modelConfig.GetByCate(helper.ConfigCate(tab))
+	controller.Data["Tab"] = tab
+	controller.Data["IsCloudStore"] = true
+	controller.TplName = "cloud-store.html"
 }
 
-func (this *SysController) SetCloudStore() {
-	storeType := helper.ConfigCate(this.GetString("tab", "cs-oss"))
+func (controller *SysController) SetCloudStore() {
+	storeType := helper.ConfigCate(controller.GetString("tab", "cs-oss"))
 	if storeType == "" {
-		this.ResponseJson(false, "参数错误：存储类别不正确")
+		controller.ResponseJson(false, "参数错误：存储类别不正确")
 	}
 	modelConfig := models.NewConfig()
-	config, err := modelConfig.ParseForm(storeType, this.Ctx.Request.Form)
+	config, err := modelConfig.ParseForm(storeType, controller.Ctx.Request.Form)
 	if err != nil {
-		this.ResponseJson(false, err.Error(), config)
+		controller.ResponseJson(false, err.Error(), config)
 	}
 
 	csPublic, err := models.NewCloudStoreWithConfig(config, storeType, false)
 	if err != nil {
-		this.ResponseJson(false, err.Error(), config)
+		controller.ResponseJson(false, err.Error(), config)
 	}
 
 	if err = csPublic.PingTest(); err != nil {
-		this.ResponseJson(false, err.Error(), config)
+		controller.ResponseJson(false, err.Error(), config)
 	}
 
 	csPrivate, err := models.NewCloudStoreWithConfig(config, storeType, true)
 	if err != nil {
-		this.ResponseJson(false, err.Error(), config)
+		controller.ResponseJson(false, err.Error(), config)
 	}
 
 	if err = csPrivate.PingTest(); err != nil {
-		this.ResponseJson(false, err.Error(), config)
+		controller.ResponseJson(false, err.Error(), config)
 	}
 
 	err = modelConfig.UpdateCloudStore(storeType, config)
 	if err != nil {
-		this.ResponseJson(false, err.Error(), config)
+		controller.ResponseJson(false, err.Error(), config)
 	}
-	this.ResponseJson(true, "更新成功", config)
+	controller.ResponseJson(true, "更新成功", config)
 }

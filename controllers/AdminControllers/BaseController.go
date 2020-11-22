@@ -3,13 +3,13 @@ package AdminControllers
 import (
 	"strings"
 
-	"github.com/TruthHun/DocHub/models"
+	"dochub/models"
 
 	"time"
 
 	"fmt"
 
-	"github.com/TruthHun/DocHub/helper"
+	"dochub/helper"
 	"github.com/astaxie/beego"
 )
 
@@ -22,15 +22,15 @@ type BaseController struct {
 }
 
 //初始化函数
-func (this *BaseController) Prepare() {
+func (controller *BaseController) Prepare() {
 	var ok bool
-	this.Sys, _ = models.NewSys().Get()
+	controller.Sys, _ = models.NewSys().Get()
 	//检测是否已登录，未登录则跳转到登录页
-	AdminId := this.GetSession("AdminId")
-	this.AdminId, ok = AdminId.(int)
-	this.Data["Admin"], _ = models.NewAdmin().GetById(this.AdminId)
-	if !ok || this.AdminId == 0 {
-		this.Redirect("/admin/login", 302)
+	AdminId := controller.GetSession("AdminId")
+	controller.AdminId, ok = AdminId.(int)
+	controller.Data["Admin"], _ = models.NewAdmin().GetById(controller.AdminId)
+	if !ok || controller.AdminId == 0 {
+		controller.Redirect("/admin/login", 302)
 		return
 	}
 
@@ -38,41 +38,41 @@ func (this *BaseController) Prepare() {
 	if helper.Debug {
 		version = fmt.Sprintf("%v.%v", version, time.Now().Unix())
 	}
-	this.Data["Version"] = version
+	controller.Data["Version"] = version
 	//后台关闭XSRF功能
-	this.EnableXSRF = false
-	ctrl, _ := this.GetControllerAndAction()
+	controller.EnableXSRF = false
+	ctrl, _ := controller.GetControllerAndAction()
 	ctrl = strings.TrimSuffix(ctrl, "Controller")
 	//设置默认模板
-	this.TplTheme = "default"
-	this.TplPrefix = "Admin/" + this.TplTheme + "/" + ctrl + "/"
-	this.Layout = "Admin/" + this.TplTheme + "/layout.html"
+	controller.TplTheme = "default"
+	controller.TplPrefix = "Admin/" + controller.TplTheme + "/" + ctrl + "/"
+	controller.Layout = "Admin/" + controller.TplTheme + "/layout.html"
 	//当前模板静态文件
-	this.Data["TplStatic"] = "/static/Admin/" + this.TplTheme
-	//this.Data["PreviewDomain"] = beego.AppConfig.String("oss::PreviewUrl")
+	controller.Data["TplStatic"] = "/static/Admin/" + controller.TplTheme
+	//controller.Data["PreviewDomain"] = beego.AppConfig.String("oss::PreviewUrl")
 	if cs, err := models.NewCloudStore(false); err == nil {
-		this.Data["PreviewDomain"] = cs.GetPublicDomain()
+		controller.Data["PreviewDomain"] = cs.GetPublicDomain()
 	} else {
 		helper.Logger.Error(err.Error())
-		this.Data["PreviewDomain"] = ""
+		controller.Data["PreviewDomain"] = ""
 	}
-	this.Data["Sys"] = this.Sys
-	this.Data["Title"] = "文库系统管理后台"
-	this.Data["Lang"] = "zh-CN"
+	controller.Data["Sys"] = controller.Sys
+	controller.Data["Title"] = "文库系统管理后台"
+	controller.Data["Lang"] = "zh-CN"
 }
 
 //自定义的文档错误
-func (this *BaseController) ErrorDiy(status, redirect, msg interface{}, timewait int) {
-	this.Data["status"] = status
-	this.Data["redirect"] = redirect
-	this.Data["msg"] = msg
-	this.Data["timewait"] = timewait
-	this.TplName = "error_diy.html"
+func (controller *BaseController) ErrorDiy(status, redirect, msg interface{}, timewait int) {
+	controller.Data["status"] = status
+	controller.Data["redirect"] = redirect
+	controller.Data["msg"] = msg
+	controller.Data["timewait"] = timewait
+	controller.TplName = "error_diy.html"
 }
 
 //是否已经登录，如果已登录，则返回用户的id
-func (this *BaseController) CheckLogin() int {
-	uid := this.GetSession("uid")
+func (controller *BaseController) CheckLogin() int {
+	uid := controller.GetSession("uid")
 	if uid != nil {
 		id, ok := uid.(int)
 		if ok && id > 0 {
@@ -83,35 +83,35 @@ func (this *BaseController) CheckLogin() int {
 }
 
 //404
-func (this *BaseController) Error404() {
-	this.Layout = ""
-	this.Data["content"] = "Page Not Foud"
-	this.Data["code"] = "404"
-	this.Data["content_zh"] = "页面被外星人带走了"
-	this.TplName = "error.html"
+func (controller *BaseController) Error404() {
+	controller.Layout = ""
+	controller.Data["content"] = "Page Not Foud"
+	controller.Data["code"] = "404"
+	controller.Data["content_zh"] = "页面被外星人带走了"
+	controller.TplName = "error.html"
 }
 
 //501
-func (this *BaseController) Error501() {
-	this.Layout = ""
-	this.Data["code"] = "501"
-	this.Data["content"] = "Server Error"
-	this.Data["content_zh"] = "服务器被外星人戳炸了"
-	this.TplName = "error.html"
+func (controller *BaseController) Error501() {
+	controller.Layout = ""
+	controller.Data["code"] = "501"
+	controller.Data["content"] = "Server Error"
+	controller.Data["content_zh"] = "服务器被外星人戳炸了"
+	controller.TplName = "error.html"
 }
 
 //数据库错误
-func (this *BaseController) ErrorDb() {
-	this.Layout = ""
-	this.Data["content"] = "Database is now down"
-	this.Data["content_zh"] = "数据库被外星人抢走了"
-	this.TplName = "error.html"
+func (controller *BaseController) ErrorDb() {
+	controller.Layout = ""
+	controller.Data["content"] = "Database is now down"
+	controller.Data["content_zh"] = "数据库被外星人抢走了"
+	controller.TplName = "error.html"
 }
 
 //更新内容
-func (this *BaseController) Update() {
-	id := strings.Split(this.GetString("id"), ",")
-	i, err := models.UpdateByIds(this.GetString("table"), this.GetString("field"), this.GetString("value"), id)
+func (controller *BaseController) Update() {
+	id := strings.Split(controller.GetString("id"), ",")
+	i, err := models.UpdateByIds(controller.GetString("table"), controller.GetString("field"), controller.GetString("value"), id)
 	ret := map[string]interface{}{"status": 0, "msg": "更新失败，可能您未对内容作更改"}
 	if i > 0 && err == nil {
 		ret["status"] = 1
@@ -120,14 +120,14 @@ func (this *BaseController) Update() {
 	if err != nil {
 		ret["msg"] = err.Error()
 	}
-	this.Data["json"] = ret
-	this.ServeJSON()
+	controller.Data["json"] = ret
+	controller.ServeJSON()
 }
 
 //删除内容
-func (this *BaseController) Del() {
-	id := strings.Split(this.GetString("id"), ",")
-	i, err := models.DelByIds(this.GetString("table"), id)
+func (controller *BaseController) Del() {
+	id := strings.Split(controller.GetString("id"), ",")
+	i, err := models.DelByIds(controller.GetString("table"), id)
 	ret := map[string]interface{}{"status": 0, "msg": "删除失败，可能您要删除的内容已经不存在"}
 	if i > 0 && err == nil {
 		ret["status"] = 1
@@ -136,12 +136,12 @@ func (this *BaseController) Del() {
 	if err != nil {
 		ret["msg"] = err.Error()
 	}
-	this.Data["json"] = ret
-	this.ServeJSON()
+	controller.Data["json"] = ret
+	controller.ServeJSON()
 }
 
 //响应json
-func (this *BaseController) ResponseJson(isSuccess bool, msg string, data ...interface{}) {
+func (controller *BaseController) ResponseJson(isSuccess bool, msg string, data ...interface{}) {
 	status := 0
 	if isSuccess {
 		status = 1
@@ -150,14 +150,14 @@ func (this *BaseController) ResponseJson(isSuccess bool, msg string, data ...int
 	if len(data) > 0 {
 		ret["data"] = data[0]
 	}
-	this.Data["json"] = ret
-	this.ServeJSON()
-	this.StopRun()
+	controller.Data["json"] = ret
+	controller.ServeJSON()
+	controller.StopRun()
 }
 
 //响应json
-func (this *BaseController) Response(data map[string]interface{}) {
-	this.Data["json"] = data
-	this.ServeJSON()
-	this.StopRun()
+func (controller *BaseController) Response(data map[string]interface{}) {
+	controller.Data["json"] = data
+	controller.ServeJSON()
+	controller.StopRun()
 }

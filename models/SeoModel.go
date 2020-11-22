@@ -1,18 +1,16 @@
 package models
 
 import (
+	"fmt"
+	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
-	"os"
-
-	"strconv"
-
-	"fmt"
-
-	"github.com/TruthHun/DocHub/helper"
+	"dochub/helper"
 	"github.com/TruthHun/gotil/sitemap"
+
 	"github.com/astaxie/beego/orm"
 )
 
@@ -64,7 +62,7 @@ func AutoSitemap() {
 //@param                defaultDescription  默认摘要
 //@param                Sitename            站点名称
 //@return               seo                 SEO数据
-func (this *Seo) GetByPage(page string, defaultTitle, defaultKeywords, defaultDescription, Sitename string) (seo map[string]string) {
+func (model *Seo) GetByPage(page string, defaultTitle, defaultKeywords, defaultDescription, Sitename string) (seo map[string]string) {
 	var seoStruct Seo
 	seo = make(map[string]string)
 	defSeo := map[string]string{
@@ -94,12 +92,12 @@ func (this *Seo) GetByPage(page string, defaultTitle, defaultKeywords, defaultDe
 	return seo
 }
 
-//baseUrl := this.Ctx.Input.Scheme() + "://" + this.Ctx.Request.Host
+//baseUrl := model.Ctx.Input.Scheme() + "://" + model.Ctx.Request.Host
 //if host := beego.AppConfig.String("sitemap_host"); len(host) > 0 {
-//	baseUrl = this.Ctx.Input.Scheme() + "://" + host
+//	baseUrl = model.Ctx.Input.Scheme() + "://" + host
 //}
 //生成站点地图
-func (this *Seo) BuildSitemap() {
+func (model *Seo) BuildSitemap() {
 	//更新站点地图
 	helper.Logger.Info(fmt.Sprintf("[%v]更新站点地图[start]", time.Now().Format("2006-01-02 15:04:05")))
 	var (

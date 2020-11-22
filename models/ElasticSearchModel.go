@@ -1,20 +1,18 @@
 package models
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
+	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
-	"net/http"
+	"dochub/helper"
+	"dochub/libs/util"
 
-	"encoding/json"
-	"strconv"
-
-	"fmt"
-
-	"github.com/TruthHun/DocHub/helper"
-	"github.com/TruthHun/gotil/util"
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/httplib"
 	"github.com/astaxie/beego/orm"
@@ -124,16 +122,16 @@ func NewElasticSearchClient(configElasticSearch ...ElasticSearchClient) (client 
 }
 
 //初始化全文搜索客户端，包括检查索引是否存在，mapping设置等
-func (this *ElasticSearchClient) Init() (err error) {
-	if !this.On { //未开启ElasticSearch，则不初始化
+func (model *ElasticSearchClient) Init() (err error) {
+	if !model.On { //未开启ElasticSearch，则不初始化
 		return
 	}
 	//检测是否能ping同
-	if err = this.ping(); err == nil {
+	if err = model.ping(); err == nil {
 		//检测索引是否存在；索引不存在，则创建索引；如果索引存在，则直接跳过初始化
-		if err = this.existIndex(); err != nil {
+		if err = model.existIndex(); err != nil {
 			//创建索引成功
-			if err = this.createIndex(); err == nil {
+			if err = model.createIndex(); err == nil {
 				//创建mapping
 				js := `{
 	"properties": {
@@ -183,8 +181,8 @@ func (this *ElasticSearchClient) Init() (err error) {
 					beego.Info(js)
 					beego.Debug(" ==== ElasticSearch初始化mapping ==== ")
 				}
-				api := this.Host + this.Index + "/" + this.Type + "/_mapping"
-				req := this.post(api)
+				api := model.Host + model.Index + "/" + model.Type + "/_mapping"
+				req := model.post(api)
 				if resp, errResp := req.Header("Content-Type", "application/json").Body(js).Response(); errResp != nil {
 					err = errResp
 				} else {
@@ -204,7 +202,7 @@ func (this *ElasticSearchClient) Init() (err error) {
 //@param            order       排序，可选值：new(最新)、down(下载)、page(页数)、score(评分)、size(大小)、collect(收藏)、view（浏览）、default(默认)
 //@param            p           页码
 //@param            listRows    每页显示记录数
-func (this *ElasticSearchClient) Search(wd, sourceType, order string, p, listRows int) (result ElasticSearchResult, err error) {
+func (model *ElasticSearchClient) Search(wd, sourceType, order string, p, listRows int) (result ElasticSearchResult, err error) {
 	wd = strings.Replace(wd, "\"", " ", -1)
 	wd = strings.Replace(wd, "\\", " ", -1)
 	filter := ""
@@ -278,8 +276,8 @@ func (this *ElasticSearchClient) Search(wd, sourceType, order string, p, listRow
 	if helper.Debug {
 		helper.Logger.Debug(queryBody)
 	}
-	api := this.Host + this.Index + "/" + this.Type + "/_search"
-	if resp, errResp := this.post(api).Body(queryBody).Response(); errResp != nil {
+	api := model.Host + model.Index + "/" + model.Type + "/_search"
+	if resp, errResp := model.post(api).Body(queryBody).Response(); errResp != nil {
 		err = errResp
 	} else {
 		b, _ := ioutil.ReadAll(resp.Body)
@@ -291,7 +289,7 @@ func (this *ElasticSearchClient) Search(wd, sourceType, order string, p, listRow
 //重建索引【全量】
 //采用批量重建索引的方式进行
 //每次操作100条数据
-func (this *ElasticSearchClient) RebuildAllIndex() {
+func (model *ElasticSearchClient) RebuildAllIndex() {
 	helper.ConfigMap.Store("indexing", true)
 	defer helper.ConfigMap.Store("indexing", false)
 	//假设有10个亿的文档...
@@ -312,13 +310,13 @@ func (this *ElasticSearchClient) RebuildAllIndex() {
 			if data, err := NewDocument().GetDocForElasticSearch(ids...); err != nil {
 				helper.Logger.Error("批量生成索引失败：" + err.Error())
 			} else {
-				if err := this.BuildIndexByBuck(data); err != nil {
+				if err := model.BuildIndexByBuck(data); err != nil {
 					helper.Logger.Error("批量生成索引失败：" + err.Error())
 				}
 			}
 			timeEnd := time.Now().Unix()
 			//如果生成/更新索引耗时超过默认超时时间的一半，则休眠一小段时间，避免由于生成索引导致服务器负载过高，从而影响整站服务
-			if spend := timeEnd - timeStart; spend > int64(this.Timeout)/2 {
+			if spend := timeEnd - timeStart; spend > int64(model.Timeout)/2 {
 				time.Sleep(time.Duration(spend) * time.Second)
 			}
 		}
@@ -327,34 +325,34 @@ func (this *ElasticSearchClient) RebuildAllIndex() {
 }
 
 //根据id查询文档，并创建索引
-func (this *ElasticSearchClient) BuildIndexById(id int) (err error) {
+func (model *ElasticSearchClient) BuildIndexById(id int) (err error) {
 	if es, errES := NewDocument().GetDocForElasticSearch(id); errES != nil {
 		err = errES
 	} else {
 		//基本只会有一项
 		for _, item := range es {
-			err = this.BuildIndex(item)
+			err = model.BuildIndex(item)
 		}
 	}
 	return
 }
 
 //通过bulk，批量创建/更新索引
-func (this *ElasticSearchClient) BuildIndexByBuck(data []ElasticSearchData) (err error) {
+func (model *ElasticSearchClient) BuildIndexByBuck(data []ElasticSearchData) (err error) {
 	var bodySlice []string
 	if len(data) > 0 {
 		for _, item := range data {
-			action := fmt.Sprintf(`{"index":{"_index":"%v","_type":"%v","_id":%v}}`, this.Index, this.Type, item.Id)
+			action := fmt.Sprintf(`{"index":{"_index":"%v","_type":"%v","_id":%v}}`, model.Index, model.Type, item.Id)
 			bodySlice = append(bodySlice, action)
 			bodySlice = append(bodySlice, util.InterfaceToJson(item))
 		}
-		api := this.Host + "_bulk"
+		api := model.Host + "_bulk"
 		body := strings.Join(bodySlice, "\n") + "\n"
 		if helper.Debug {
 			helper.Logger.Info("批量更新索引请求体")
 			helper.Logger.Info(body)
 		}
-		if resp, errResp := this.post(api).Body(body).Response(); errResp != nil {
+		if resp, errResp := model.post(api).Body(body).Response(); errResp != nil {
 			err = errResp
 		} else {
 			if resp.StatusCode >= http.StatusMultipleChoices || resp.StatusCode < http.StatusOK {
@@ -367,12 +365,12 @@ func (this *ElasticSearchClient) BuildIndexByBuck(data []ElasticSearchData) (err
 }
 
 //创建索引
-func (this *ElasticSearchClient) BuildIndex(es ElasticSearchData) (err error) {
+func (model *ElasticSearchClient) BuildIndex(es ElasticSearchData) (err error) {
 	var (
 		js   []byte
 		resp *http.Response
 	)
-	if !this.On {
+	if !model.On {
 		return
 	}
 	if helper.Debug {
@@ -380,9 +378,9 @@ func (this *ElasticSearchClient) BuildIndex(es ElasticSearchData) (err error) {
 		fmt.Printf("%+v\n", es)
 		beego.Info("创建索引-------- end --------")
 	}
-	api := this.Host + this.Index + "/" + this.Type + "/" + strconv.Itoa(es.Id)
+	api := model.Host + model.Index + "/" + model.Type + "/" + strconv.Itoa(es.Id)
 	if js, err = json.Marshal(es); err == nil {
-		if resp, err = this.post(api).Body(js).Response(); err == nil {
+		if resp, err = model.post(api).Body(js).Response(); err == nil {
 			if resp.StatusCode >= 300 || resp.StatusCode < 200 {
 				b, _ := ioutil.ReadAll(resp.Body)
 				err = errors.New("生成索引失败：" + resp.Status + "；" + string(b))
@@ -395,13 +393,13 @@ func (this *ElasticSearchClient) BuildIndex(es ElasticSearchData) (err error) {
 //查询索引量
 //@return           count           统计数据
 //@return           err             错误
-func (this *ElasticSearchClient) Count() (count int, err error) {
-	if !this.On {
+func (model *ElasticSearchClient) Count() (count int, err error) {
+	if !model.On {
 		err = errors.New("未启用ElasticSearch")
 		return
 	}
-	api := this.Host + this.Index + "/" + this.Type + "/_count"
-	if resp, errResp := this.get(api).Response(); errResp != nil {
+	api := model.Host + model.Index + "/" + model.Type + "/_count"
+	if resp, errResp := model.get(api).Response(); errResp != nil {
 		err = errResp
 	} else {
 		b, _ := ioutil.ReadAll(resp.Body)
@@ -421,9 +419,9 @@ func (this *ElasticSearchClient) Count() (count int, err error) {
 //删除索引
 //@param            id          索引id
 //@return           err         错误
-func (this *ElasticSearchClient) DeleteIndex(id int) (err error) {
-	api := this.Host + this.Index + "/" + this.Type + "/" + strconv.Itoa(id)
-	if resp, errResp := this.delete(api).Response(); errResp != nil {
+func (model *ElasticSearchClient) DeleteIndex(id int) (err error) {
+	api := model.Host + model.Index + "/" + model.Type + "/" + strconv.Itoa(id)
+	if resp, errResp := model.delete(api).Response(); errResp != nil {
 		err = errResp
 	} else {
 		if resp.StatusCode >= 300 || resp.StatusCode < 200 {
@@ -435,8 +433,8 @@ func (this *ElasticSearchClient) DeleteIndex(id int) (err error) {
 }
 
 //检验es服务能否连通
-func (this *ElasticSearchClient) ping() error {
-	resp, err := this.get(this.Host).Response()
+func (model *ElasticSearchClient) ping() error {
+	resp, err := model.get(model.Host).Response()
 	if err != nil {
 		return err
 	}
@@ -449,10 +447,10 @@ func (this *ElasticSearchClient) ping() error {
 
 //查询索引是否存在
 //@return			err				nil表示索引存在，否则表示不存在
-func (this *ElasticSearchClient) existIndex() (err error) {
+func (model *ElasticSearchClient) existIndex() (err error) {
 	var resp *http.Response
-	api := this.Host + this.Index
-	if resp, err = this.get(api).Response(); err == nil {
+	api := model.Host + model.Index
+	if resp, err = model.get(api).Response(); err == nil {
 		if resp.StatusCode >= 300 || resp.StatusCode < 200 {
 			b, _ := ioutil.ReadAll(resp.Body)
 			err = errors.New(resp.Status + "：" + string(b))
@@ -463,10 +461,10 @@ func (this *ElasticSearchClient) existIndex() (err error) {
 
 //创建索引
 //@return           err             创建索引
-func (this *ElasticSearchClient) createIndex() (err error) {
+func (model *ElasticSearchClient) createIndex() (err error) {
 	var resp *http.Response
-	api := this.Host + this.Index
-	if resp, err = this.put(api).Response(); err == nil {
+	api := model.Host + model.Index
+	if resp, err = model.put(api).Response(); err == nil {
 		if resp.StatusCode >= 300 || resp.StatusCode < 200 {
 			b, _ := ioutil.ReadAll(resp.Body)
 			err = errors.New(resp.Status + "：" + string(b))
@@ -476,21 +474,21 @@ func (this *ElasticSearchClient) createIndex() (err error) {
 }
 
 //put请求
-func (this *ElasticSearchClient) put(api string) (req *httplib.BeegoHTTPRequest) {
-	return httplib.Put(api).Header("Content-Type", "application/json").SetTimeout(this.Timeout, this.Timeout)
+func (model *ElasticSearchClient) put(api string) (req *httplib.BeegoHTTPRequest) {
+	return httplib.Put(api).Header("Content-Type", "application/json").SetTimeout(model.Timeout, model.Timeout)
 }
 
 //post请求
-func (this *ElasticSearchClient) post(api string) (req *httplib.BeegoHTTPRequest) {
-	return httplib.Post(api).Header("Content-Type", "application/json").SetTimeout(this.Timeout, this.Timeout)
+func (model *ElasticSearchClient) post(api string) (req *httplib.BeegoHTTPRequest) {
+	return httplib.Post(api).Header("Content-Type", "application/json").SetTimeout(model.Timeout, model.Timeout)
 }
 
 //delete请求
-func (this *ElasticSearchClient) delete(api string) (req *httplib.BeegoHTTPRequest) {
-	return httplib.Delete(api).Header("Content-Type", "application/json").SetTimeout(this.Timeout, this.Timeout)
+func (model *ElasticSearchClient) delete(api string) (req *httplib.BeegoHTTPRequest) {
+	return httplib.Delete(api).Header("Content-Type", "application/json").SetTimeout(model.Timeout, model.Timeout)
 }
 
 //get请求
-func (this *ElasticSearchClient) get(api string) (req *httplib.BeegoHTTPRequest) {
-	return httplib.Get(api).Header("Content-Type", "application/json").SetTimeout(this.Timeout, this.Timeout)
+func (model *ElasticSearchClient) get(api string) (req *httplib.BeegoHTTPRequest) {
+	return httplib.Get(api).Header("Content-Type", "application/json").SetTimeout(model.Timeout, model.Timeout)
 }

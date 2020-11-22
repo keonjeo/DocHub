@@ -26,7 +26,7 @@ func GetTablePages() string {
 }
 
 //查询单页列表
-func (this *Pages) List(listRows int, status ...int) (pages []Pages, rows int64, err error) {
+func (model *Pages) List(listRows int, status ...int) (pages []Pages, rows int64, err error) {
 	qs := orm.NewOrm().QueryTable(GetTablePages())
 	if len(status) > 0 {
 		qs = qs.Filter("Status", status[0])
@@ -37,7 +37,7 @@ func (this *Pages) List(listRows int, status ...int) (pages []Pages, rows int64,
 }
 
 //查询单页内容
-func (this *Pages) One(alias string) (page Pages, err error) {
+func (model *Pages) One(alias string) (page Pages, err error) {
 	err = orm.NewOrm().QueryTable(GetTablePages()).Filter("Alias", alias).One(&page)
 	return page, err
 }

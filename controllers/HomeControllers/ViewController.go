@@ -7,8 +7,8 @@ import (
 
 	"time"
 
-	"github.com/TruthHun/DocHub/helper"
-	"github.com/TruthHun/DocHub/models"
+	"dochub/helper"
+	"dochub/models"
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
 )
@@ -17,10 +17,10 @@ type ViewController struct {
 	BaseController
 }
 
-func (this *ViewController) Get() {
-	id, _ := this.GetInt(":id")
+func (controller *ViewController) Get() {
+	id, _ := controller.GetInt(":id")
 	if id < 1 {
-		this.Redirect("/", 302)
+		controller.Redirect("/", 302)
 		return
 	}
 
@@ -28,7 +28,7 @@ func (this *ViewController) Get() {
 
 	// 文档不存在、查询错误、被删除，报 404
 	if err != nil || doc.Id <= 0 || doc.Status < models.DocStatusConverting {
-		this.Abort("404")
+		controller.Abort("404")
 	}
 
 	var cates []models.Category
@@ -41,26 +41,26 @@ func (this *ViewController) Get() {
 		case doc.Pid:
 			breadcrumb["Parent"] = cate
 		case doc.Cid:
-			TimeStart := int(time.Now().Unix()) - this.Sys.TimeExpireHotspot
-			this.Data["Hots"], _, _ = models.NewDocument().SimpleList(fmt.Sprintf("di.Cid=%v and di.TimeCreate>%v", doc.Cid, TimeStart), 10, "Dcnt")
-			this.Data["Latest"], _, _ = models.NewDocument().SimpleList(fmt.Sprintf("di.Cid=%v", doc.Cid), 10, "Id")
+			TimeStart := int(time.Now().Unix()) - controller.Sys.TimeExpireHotspot
+			controller.Data["Hots"], _, _ = models.NewDocument().SimpleList(fmt.Sprintf("di.Cid=%v and di.TimeCreate>%v", doc.Cid, TimeStart), 10, "Dcnt")
+			controller.Data["Latest"], _, _ = models.NewDocument().SimpleList(fmt.Sprintf("di.Cid=%v", doc.Cid), 10, "Id")
 			breadcrumb["Child"] = cate
 		}
 	}
-	this.Data["Breadcrumb"] = breadcrumb
+	controller.Data["Breadcrumb"] = breadcrumb
 
 	models.Regulate(models.GetTableDocumentInfo(), "Vcnt", 1, "`Id`=?", id)
 
 	pageShow := 5
 	if doc.Page > pageShow {
-		this.Data["PreviewPages"] = make([]string, pageShow)
+		controller.Data["PreviewPages"] = make([]string, pageShow)
 	} else {
-		this.Data["PreviewPages"] = make([]string, doc.Page)
+		controller.Data["PreviewPages"] = make([]string, doc.Page)
 	}
-	this.Data["PageShow"] = pageShow
+	controller.Data["PageShow"] = pageShow
 
-	this.Xsrf()
-	if this.Data["Comments"], _, err = models.NewDocumentComment().GetCommentList(id, 1, 10); err != nil {
+	controller.Xsrf()
+	if controller.Data["Comments"], _, err = models.NewDocumentComment().GetCommentList(id, 1, 10); err != nil {
 		helper.Logger.Error(err.Error())
 	}
 
@@ -68,81 +68,81 @@ func (this *ViewController) Get() {
 	seoTitle := fmt.Sprintf("%v - %v · %v · %v ", doc.Title, breadcrumb["Chanel"].Title, breadcrumb["Parent"].Title, breadcrumb["Child"].Title)
 	seoKeywords := fmt.Sprintf("%v,%v,%v,", breadcrumb["Chanel"].Title, breadcrumb["Parent"].Title, breadcrumb["Child"].Title) + doc.Keywords
 	seoDesc := beego.Substr(doc.Description+content, 0, 255)
-	this.Data["Seo"] = models.NewSeo().GetByPage("PC-View", seoTitle, seoKeywords, seoDesc, this.Sys.Site)
-	this.Data["Content"] = content
-	this.Data["Reasons"] = models.NewSys().GetReportReasons()
-	this.Data["IsViewer"] = true
-	this.Data["PageId"] = "wenku-content"
-	this.Data["Doc"] = doc
+	controller.Data["Seo"] = models.NewSeo().GetByPage("PC-View", seoTitle, seoKeywords, seoDesc, controller.Sys.Site)
+	controller.Data["Content"] = content
+	controller.Data["Reasons"] = models.NewSys().GetReportReasons()
+	controller.Data["IsViewer"] = true
+	controller.Data["PageId"] = "wenku-content"
+	controller.Data["Doc"] = doc
 
 	doc.Ext = strings.TrimLeft(doc.Ext, ".")
 	if doc.Page == 0 { //不能预览的文档
-		this.Data["OnlyCover"] = true
-		this.TplName = "disabled.html"
+		controller.Data["OnlyCover"] = true
+		controller.TplName = "disabled.html"
 	} else {
-		this.Data["ViewAll"] = doc.PreviewPage == 0 || doc.PreviewPage >= doc.Page
-		this.TplName = "svg.html"
+		controller.Data["ViewAll"] = doc.PreviewPage == 0 || doc.PreviewPage >= doc.Page
+		controller.TplName = "svg.html"
 	}
 
 }
 
 //文档下载
-func (this *ViewController) Download() {
-	id, _ := this.GetInt(":id")
+func (controller *ViewController) Download() {
+	id, _ := controller.GetInt(":id")
 	if id <= 0 {
-		this.ResponseJson(false, "文档id不正确")
+		controller.ResponseJson(false, "文档id不正确")
 	}
 
-	if this.IsLogin == 0 {
-		this.ResponseJson(false, "请先登录")
+	if controller.IsLogin == 0 {
+		controller.ResponseJson(false, "请先登录")
 	}
 
-	link, err := models.NewUser().CanDownloadFile(this.IsLogin, id)
+	link, err := models.NewUser().CanDownloadFile(controller.IsLogin, id)
 	if err != nil {
-		this.ResponseJson(false, err.Error())
+		controller.ResponseJson(false, err.Error())
 	}
-	this.ResponseJson(true, "下载链接获取成功", map[string]interface{}{"url": link})
+	controller.ResponseJson(true, "下载链接获取成功", map[string]interface{}{"url": link})
 }
 
 //是否可以免费下载
-func (this *ViewController) DownFree() {
-	if this.IsLogin > 0 {
-		did, _ := this.GetInt("id")
-		if free := models.NewFreeDown().IsFreeDown(this.IsLogin, did); free {
-			this.ResponseJson(true, fmt.Sprintf("您上次下载过当前文档，且仍在免费下载有效期(%v天)内，本次下载免费", this.Sys.FreeDay))
+func (controller *ViewController) DownFree() {
+	if controller.IsLogin > 0 {
+		did, _ := controller.GetInt("id")
+		if free := models.NewFreeDown().IsFreeDown(controller.IsLogin, did); free {
+			controller.ResponseJson(true, fmt.Sprintf("您上次下载过当前文档，且仍在免费下载有效期(%v天)内，本次下载免费", controller.Sys.FreeDay))
 		}
 	}
-	this.ResponseJson(false, "不能免费下载，不在免费下载期限内")
+	controller.ResponseJson(false, "不能免费下载，不在免费下载期限内")
 }
 
 //文档评论
-func (this *ViewController) Comment() {
-	id, _ := this.GetInt(":id")
-	score, _ := this.GetInt("Score")
-	answer := this.GetString("Answer")
-	if answer != this.Sys.Answer {
-		this.ResponseJson(false, "请输入正确的答案")
+func (controller *ViewController) Comment() {
+	id, _ := controller.GetInt(":id")
+	score, _ := controller.GetInt("Score")
+	answer := controller.GetString("Answer")
+	if answer != controller.Sys.Answer {
+		controller.ResponseJson(false, "请输入正确的答案")
 	}
 	if id > 0 {
-		if this.IsLogin > 0 {
+		if controller.IsLogin > 0 {
 			if score < 1 || score > 5 {
-				this.ResponseJson(false, "请给文档评分")
+				controller.ResponseJson(false, "请给文档评分")
 			} else {
 				comment := models.DocumentComment{
-					Uid:        this.IsLogin,
+					Uid:        controller.IsLogin,
 					Did:        id,
-					Content:    this.GetString("Comment"),
+					Content:    controller.GetString("Comment"),
 					TimeCreate: int(time.Now().Unix()),
 					Status:     true,
 					Score:      score * 10000,
 				}
 				cnt := strings.Count(comment.Content, "") - 1
 				if cnt > 255 || cnt < 8 {
-					this.ResponseJson(false, "评论内容限8-255个字符")
+					controller.ResponseJson(false, "评论内容限8-255个字符")
 				} else {
 					_, err := orm.NewOrm().Insert(&comment)
 					if err != nil {
-						this.ResponseJson(false, "发表评论失败：每人仅限给每个文档点评一次")
+						controller.ResponseJson(false, "发表评论失败：每人仅限给每个文档点评一次")
 					} else {
 						//文档评论人数增加
 						sql := fmt.Sprintf("UPDATE `%v` SET `Score`=(`Score`*`ScorePeople`+%v)/(`ScorePeople`+1),`ScorePeople`=`ScorePeople`+1 WHERE Id=%v", models.GetTableDocumentInfo(), comment.Score, comment.Did)
@@ -150,28 +150,28 @@ func (this *ViewController) Comment() {
 						if err != nil {
 							helper.Logger.Error(err.Error())
 						}
-						this.ResponseJson(true, "恭喜您，评论发表成功")
+						controller.ResponseJson(true, "恭喜您，评论发表成功")
 					}
 				}
 			}
 		} else {
-			this.ResponseJson(false, "评论失败，您当前处于未登录状态，请先登录")
+			controller.ResponseJson(false, "评论失败，您当前处于未登录状态，请先登录")
 		}
 	} else {
-		this.ResponseJson(false, "评论失败，参数不正确")
+		controller.ResponseJson(false, "评论失败，参数不正确")
 	}
 }
 
 //获取评论列表
-func (this *ViewController) GetComment() {
-	p, _ := this.GetInt("p", 1)
-	did, _ := this.GetInt("did")
+func (controller *ViewController) GetComment() {
+	p, _ := controller.GetInt("p", 1)
+	did, _ := controller.GetInt("did")
 	if p > 0 && did > 0 {
 		if rows, _, err := models.NewDocumentComment().GetCommentList(did, p, 10); err != nil {
 			helper.Logger.Error(err.Error())
-			this.ResponseJson(false, "评论列表获取失败")
+			controller.ResponseJson(false, "评论列表获取失败")
 		} else {
-			this.ResponseJson(true, "评论列表获取成功", rows)
+			controller.ResponseJson(true, "评论列表获取成功", rows)
 		}
 	}
 }
